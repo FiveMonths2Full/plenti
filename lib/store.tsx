@@ -1,7 +1,7 @@
 'use client'
 // lib/store.tsx
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
-import { Bank, Item, SelectedMap, DonatedMap, DEFAULT_BANKS } from './types'
+import { Bank, Item, CatalogItem, SelectedMap, DonatedMap, DEFAULT_BANKS } from './types'
 import {
   loadSelected, saveSelected,
   loadDonated, saveDonated,
@@ -12,6 +12,7 @@ import { trackEvent } from './analytics'
 
 interface StoreCtx {
   banks: Bank[]
+  catalog: CatalogItem[]
   activeBankId: number
   selected: SelectedMap
   donated: DonatedMap
@@ -40,6 +41,7 @@ const Ctx = createContext<StoreCtx | null>(null)
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready,      setReady]      = useState(false)
   const [banks,      setBanks]      = useState<Bank[]>([])
+  const [catalog,    setCatalog]    = useState<CatalogItem[]>([])
   const [activeBankId, setActiveBankIdState] = useState<number>(1)
   const [selected,   setSelected]   = useState<SelectedMap>({})
   const [donated,    setDonated]    = useState<DonatedMap>({})
@@ -63,7 +65,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setNextItemId(maxId + 1)
     if (cached) setReady(true)
 
-    // 2. Fetch from API in background
+    // 2. Fetch catalog
+    fetch('/api/catalog')
+      .then(r => r.json())
+      .then((data: CatalogItem[]) => { if (Array.isArray(data)) setCatalog(data) })
+      .catch(() => {})
+
+    // 3. Fetch banks from API in background
     fetch('/api/banks')
       .then(r => r.json())
       .then((data: Bank[]) => {
@@ -350,7 +358,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      banks, activeBankId, selected, donated, ready,
+      banks, catalog, activeBankId, selected, donated, ready,
       setActiveBankId,
       toggleItem, changeQty, toggleDonated, clearList,
       addBank, updateBank, deleteBank, addItem, updateItem, updateItemPriority, deleteItem,

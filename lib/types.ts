@@ -21,6 +21,13 @@ export type SelectedMap = Record<string, Record<string, number>>
 // Keyed by bankId, then itemId → boolean
 export type DonatedMap = Record<string, Record<string, boolean>>
 
+export interface CatalogItem {
+  id: number
+  name: string
+  detail: string
+  category: string | null
+}
+
 export const DEFAULT_BANKS: Bank[] = [
   {
     id: 1,
