@@ -163,7 +163,6 @@ export default function BankDashboard() {
             {bank.name}
           </span>
         </div>
-        <a href="/" style={{ fontSize: 13, color: '#888', textDecoration: 'underline' }}>&larr; Donor view</a>
         <button onClick={handleLogout} style={btnGhost}>Sign out</button>
       </header>
 
