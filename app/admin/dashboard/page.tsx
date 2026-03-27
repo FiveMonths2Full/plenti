@@ -13,7 +13,7 @@ interface CatalogRequest {
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const { banks, catalog, addBank, updateBank, deleteBank, addItem, updateItem, deleteItem } = useStore()
+  const { banks, catalog, addBank, updateBank, deleteBank, addItem, updateItem, deleteItem, refreshCatalog } = useStore()
 
   const [activeBankId, setActiveBankId] = useState<number | null>(null)
   const [toast,        setToast]        = useState({ visible: false, message: '' })
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
   const [eiPriority, setEiPriority] = useState<Item['priority']>('medium')
 
   // Catalog management (super)
-  const [showCatalogMgmt,   setShowCatalogMgmt]   = useState(false)
+  const [showCatalogMgmt,   setShowCatalogMgmt]   = useState(true)
   const [catMgmtQuery,      setCatMgmtQuery]      = useState('')
   const [editingCatId,      setEditingCatId]       = useState<number | null>(null)
   const [ecName,            setEcName]             = useState('')
@@ -238,15 +238,20 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: ecName, detail: ecDetail, category: ecCategory }),
       })
-      if (res.ok) { showToast('Catalog item saved'); setEditingCatId(null) }
-      else showToast('Error saving')
+      if (res.ok) {
+        await refreshCatalog()
+        setEditingCatId(null)
+        showToast('Catalog item saved')
+      } else {
+        showToast('Error saving')
+      }
     } finally { setCatSaving(false) }
   }
 
   async function handleDeleteCatalogItem(id: number) {
     if (!confirm('Remove this item from the catalog?')) return
     const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' })
-    if (res.ok) showToast('Removed from catalog')
+    if (res.ok) { await refreshCatalog(); showToast('Removed from catalog') }
     else showToast('Error removing')
   }
 
@@ -260,7 +265,9 @@ export default function AdminDashboard() {
         body: JSON.stringify({ name: newCatName.trim(), detail: newCatDetail.trim(), category: newCatCategory.trim() || null }),
       })
       if (res.ok) {
-        showToast('Added to catalog'); setNewCatName(''); setNewCatDetail(''); setNewCatCategory('')
+        await refreshCatalog()
+        setNewCatName(''); setNewCatDetail(''); setNewCatCategory('')
+        showToast('Added to catalog')
       } else if (res.status === 409) {
         showToast('Item already in catalog')
       } else {
@@ -284,6 +291,7 @@ export default function AdminDashboard() {
       body: JSON.stringify({ action }),
     })
     if (res.ok) {
+      if (action === 'approve') await refreshCatalog()
       showToast(action === 'approve' ? 'Approved & added to catalog' : 'Request rejected')
       setRequests(prev => prev.filter(r => r.id !== id))
     } else {

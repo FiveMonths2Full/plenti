@@ -34,6 +34,7 @@ interface StoreCtx {
   updateItem: (bankId: number, itemId: number, changes: Partial<Omit<Item, 'id'>>) => void
   updateItemPriority: (bankId: number, itemId: number, priority: Item['priority']) => void
   deleteItem: (bankId: number, itemId: number) => void
+  refreshCatalog: () => Promise<void>
 }
 
 const Ctx = createContext<StoreCtx | null>(null)
@@ -90,6 +91,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
         setReady(true)
       })
+  }, [])
+
+  const refreshCatalog = useCallback(async () => {
+    const data = await fetch('/api/catalog').then(r => r.json()).catch(() => null)
+    if (Array.isArray(data)) setCatalog(data)
   }, [])
 
   const setActiveBankId = useCallback((id: number) => {
@@ -361,7 +367,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       banks, catalog, activeBankId, selected, donated, ready,
       setActiveBankId,
       toggleItem, changeQty, toggleDonated, clearList,
-      addBank, updateBank, deleteBank, addItem, updateItem, updateItemPriority, deleteItem,
+      addBank, updateBank, deleteBank, addItem, updateItem, updateItemPriority, deleteItem, refreshCatalog,
     }}>
       {children}
     </Ctx.Provider>
