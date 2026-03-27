@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { sql } from '@/lib/db'
-import bcrypt from 'bcryptjs'
 import { getAdminSession } from '@/lib/auth'
 
 export async function PATCH(
@@ -12,7 +10,14 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { password } = await request.json() as { password: string }
-  const hash = await bcrypt.hash(password, 10)
-  await sql`UPDATE banks SET admin_password_hash = ${hash} WHERE id = ${parseInt(params.id)}`
-  return NextResponse.json({ ok: true })
+  try {
+    const { sql } = await import('@vercel/postgres')
+    const bcrypt = await import('bcryptjs')
+    const hash = await bcrypt.hash(password, 10)
+    await sql`UPDATE banks SET admin_password_hash = ${hash} WHERE id = ${parseInt(params.id)}`
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('set-password error:', err)
+    return NextResponse.json({ error: 'Database error' }, { status: 500 })
+  }
 }
