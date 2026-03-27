@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   const sessionData = JSON.stringify({ role, bankId: authenticatedBankId })
   const isProduction = process.env.NODE_ENV === 'production'
 
-  const response = NextResponse.json({ ok: true })
+  const response = NextResponse.json({ ok: true, role })
   response.cookies.set('plenty_session', sessionData, {
     path: '/',
     sameSite: 'lax',
