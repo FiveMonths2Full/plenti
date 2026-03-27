@@ -30,6 +30,7 @@ interface StoreCtx {
   updateBank: (id: number, name: string, location: string) => void
   deleteBank: (id: number) => void
   addItem:    (bankId: number, item: Omit<Item, 'id'>) => void
+  updateItem: (bankId: number, itemId: number, changes: Partial<Omit<Item, 'id'>>) => void
   updateItemPriority: (bankId: number, itemId: number, priority: Item['priority']) => void
   deleteItem: (bankId: number, itemId: number) => void
 }
@@ -253,6 +254,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     })
   }, [nextItemId])
 
+  const updateItem = useCallback((bankId: number, itemId: number, changes: Partial<Omit<Item, 'id'>>) => {
+    setBanks(prev => {
+      const bank = prev.find(b => b.id === bankId)
+      const oldItem = bank?.items.find(i => i.id === itemId)
+      const next = prev.map(b => b.id !== bankId ? b : {
+        ...b, items: b.items.map(i => i.id === itemId ? { ...i, ...changes } : i)
+      })
+      saveBanksCache(next)
+
+      fetch(`/api/banks/${bankId}/items/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
+      }).catch(() => {
+        if (oldItem) {
+          setBanks(cur => {
+            const reverted = cur.map(b => b.id !== bankId ? b : {
+              ...b, items: b.items.map(i => i.id === itemId ? oldItem : i)
+            })
+            saveBanksCache(reverted)
+            return reverted
+          })
+        }
+      })
+
+      return next
+    })
+  }, [])
+
   const updateItemPriority = useCallback((bankId: number, itemId: number, priority: Item['priority']) => {
     setBanks(prev => {
       const bank = prev.find(b => b.id === bankId)
@@ -323,7 +353,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       banks, activeBankId, selected, donated, ready,
       setActiveBankId,
       toggleItem, changeQty, toggleDonated, clearList,
-      addBank, updateBank, deleteBank, addItem, updateItemPriority, deleteItem,
+      addBank, updateBank, deleteBank, addItem, updateItem, updateItemPriority, deleteItem,
     }}>
       {children}
     </Ctx.Provider>
