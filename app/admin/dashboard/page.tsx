@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useIsDesktop } from '@/lib/hooks'
 import { Item, CatalogItem } from '@/lib/types'
 import { EmptyState, Toast } from '@/components/ui'
 
@@ -13,6 +14,7 @@ interface CatalogRequest {
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
   const { banks, catalog, addBank, updateBank, deleteBank, addItem, updateItem, deleteItem, refreshCatalog } = useStore()
 
   const [activeBankId, setActiveBankId] = useState<number | null>(null)
@@ -224,7 +226,7 @@ export default function AdminDashboard() {
   }
 
   function handleCopyShareLink(id: number) {
-    const url = `${window.location.origin}/?bank=${id}`
+    const url = `${window.location.origin}/donate?bank=${id}`
     navigator.clipboard?.writeText(url).catch(() => {})
     showToast('Share link copied')
   }
@@ -314,51 +316,118 @@ export default function AdminDashboard() {
     : catalog
 
   return (
-    <main style={{ maxWidth: 640, margin: '0 auto', paddingBottom: 60 }}>
-      {/* Header */}
-      <header style={{
-        padding: '18px 20px', borderBottom: '0.5px solid #eee',
-        display: 'flex', alignItems: 'center', gap: 12,
-        position: 'sticky', top: 0, background: '#fff', zIndex: 10,
-      }}>
-        <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400 }}>Plenti</span>
-        <span style={{
-          fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
-          background: '#f5f5f3', border: '0.5px solid #e8e8e8', color: '#aaa',
-          padding: '3px 9px', borderRadius: 999,
-        }}>Admin</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <a href="/" style={{ fontSize: 13, color: '#888', textDecoration: 'underline' }}>&larr; Donor view</a>
-          <button onClick={handleLogout} style={btnGhost}>Sign out</button>
-        </div>
-      </header>
+    <main style={{
+      display: 'flex',
+      flexDirection: isDesktop ? 'row' : 'column',
+      minHeight: '100dvh',
+      ...(isDesktop ? {} : { maxWidth: 640, margin: '0 auto' }),
+    }}>
 
-      <div style={{ padding: 20 }}>
+      {/* ── Desktop sidebar ── */}
+      {isDesktop && (
+        <aside style={{
+          width: 240, flexShrink: 0,
+          borderRight: '0.5px solid #eee',
+          padding: '24px 16px',
+          display: 'flex', flexDirection: 'column',
+          position: 'sticky', top: 0, height: '100vh', overflowY: 'auto',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400 }}>Plenti</span>
+            <span style={{
+              fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
+              background: '#f5f5f3', border: '0.5px solid #e8e8e8', color: '#aaa',
+              padding: '3px 9px', borderRadius: 999,
+            }}>Admin</span>
+          </div>
 
-        {/* ── Food banks ── */}
-        <section style={{ marginBottom: 28 }}>
-          <div style={sectionHead}>Food banks</div>
+          <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa', marginBottom: 8 }}>
+            Food banks
+          </div>
 
-          {/* Bank tabs */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
             {visibleBanks.map(b => (
               <button key={b.id} onClick={() => { setActiveBankId(b.id); setEditingItemId(null) }} style={{
-                padding: '7px 14px', borderRadius: 999,
-                border: `0.5px solid ${b.id === activeBankId ? '#111' : '#ddd'}`,
-                background: b.id === activeBankId ? '#111' : 'transparent',
-                color: b.id === activeBankId ? '#fff' : '#888',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '8px 12px', borderRadius: 8, border: 'none',
+                background: b.id === activeBankId ? '#EAF3DE' : 'transparent',
+                color: b.id === activeBankId ? '#27500A' : '#555',
+                fontWeight: b.id === activeBankId ? 600 : 400,
+                fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.15s',
               }}>{b.name}</button>
             ))}
             {isSuper && (
               <button onClick={() => setShowAddBank(v => !v)} style={{
-                padding: '7px 14px', borderRadius: 999,
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '8px 12px', borderRadius: 8,
                 border: `0.5px ${showAddBank ? 'solid #27500A' : 'dashed #ccc'}`,
                 background: showAddBank ? '#EAF3DE' : 'transparent',
-                fontSize: 13, color: showAddBank ? '#27500A' : '#aaa', cursor: 'pointer',
+                fontSize: 13, color: showAddBank ? '#27500A' : '#aaa',
+                cursor: 'pointer', fontFamily: 'inherit',
               }}>+ Add bank</button>
             )}
           </div>
+
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 16, borderTop: '0.5px solid #eee' }}>
+            <a href="/donate" style={{ fontSize: 13, color: '#888', textDecoration: 'underline' }}>← Donor view</a>
+            <button onClick={handleLogout} style={btnGhost}>Sign out</button>
+          </div>
+        </aside>
+      )}
+
+      {/* ── Main content ── */}
+      <div style={{ flex: 1, paddingBottom: 60 }}>
+
+      {/* Mobile header */}
+      {!isDesktop && (
+        <header style={{
+          padding: '18px 20px', borderBottom: '0.5px solid #eee',
+          display: 'flex', alignItems: 'center', gap: 12,
+          position: 'sticky', top: 0, background: '#fff', zIndex: 10,
+        }}>
+          <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400 }}>Plenti</span>
+          <span style={{
+            fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
+            background: '#f5f5f3', border: '0.5px solid #e8e8e8', color: '#aaa',
+            padding: '3px 9px', borderRadius: 999,
+          }}>Admin</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <a href="/donate" style={{ fontSize: 13, color: '#888', textDecoration: 'underline' }}>&larr; Donor view</a>
+            <button onClick={handleLogout} style={btnGhost}>Sign out</button>
+          </div>
+        </header>
+      )}
+
+      <div style={{ padding: isDesktop ? '32px 40px' : 20 }}>
+
+        {/* ── Food banks ── */}
+        <section style={{ marginBottom: 28 }}>
+          {/* Bank tabs — mobile only (sidebar handles desktop) */}
+          {!isDesktop && (
+            <>
+              <div style={sectionHead}>Food banks</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                {visibleBanks.map(b => (
+                  <button key={b.id} onClick={() => { setActiveBankId(b.id); setEditingItemId(null) }} style={{
+                    padding: '7px 14px', borderRadius: 999,
+                    border: `0.5px solid ${b.id === activeBankId ? '#111' : '#ddd'}`,
+                    background: b.id === activeBankId ? '#111' : 'transparent',
+                    color: b.id === activeBankId ? '#fff' : '#888',
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
+                  }}>{b.name}</button>
+                ))}
+                {isSuper && (
+                  <button onClick={() => setShowAddBank(v => !v)} style={{
+                    padding: '7px 14px', borderRadius: 999,
+                    border: `0.5px ${showAddBank ? 'solid #27500A' : 'dashed #ccc'}`,
+                    background: showAddBank ? '#EAF3DE' : 'transparent',
+                    fontSize: 13, color: showAddBank ? '#27500A' : '#aaa', cursor: 'pointer',
+                  }}>+ Add bank</button>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Add bank form */}
           {isSuper && showAddBank && (
@@ -762,6 +831,7 @@ export default function AdminDashboard() {
           </section>
         )}
       </div>
+      </div>{/* /main content */}
 
       <Toast message={toast.message} visible={toast.visible} />
     </main>

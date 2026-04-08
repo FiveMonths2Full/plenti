@@ -1,7 +1,7 @@
 'use client'
 // lib/store.tsx
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
-import { Bank, Item, CatalogItem, SelectedMap, DonatedMap, DEFAULT_BANKS } from './types'
+import { Bank, Item, CatalogItem, SelectedMap, DonatedMap } from './types'
 import {
   loadSelected, saveSelected,
   loadDonated, saveDonated,
@@ -61,7 +61,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // 1. Load cache immediately
     const cached = loadBanksCache()
-    const initialBanks = cached || DEFAULT_BANKS
+    const initialBanks = cached || []
     const ab = loadActiveBank(initialBanks)
     const maxId = Math.max(0, ...initialBanks.flatMap(bk => bk.items.map(i => i.id)))
     setBanks(initialBanks)
@@ -90,10 +90,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setReady(true)
       })
       .catch(() => {
-        // On failure with no cache, fall back to DEFAULT_BANKS
-        if (!cached) {
-          setBanks(DEFAULT_BANKS)
-        }
         setReady(true)
       })
   }, [])

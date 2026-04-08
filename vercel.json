@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/donate", "destination": "/donate" },
     { "source": "/admin", "destination": "/admin" },
     { "source": "/admin/dashboard", "destination": "/admin/dashboard" }
   ]

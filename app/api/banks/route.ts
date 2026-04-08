@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { getBanks, sql } from '@/lib/db'
-import { DEFAULT_BANKS } from '@/lib/types'
 import { getAdminSession } from '@/lib/auth'
 
 export async function GET() {
@@ -8,7 +7,7 @@ export async function GET() {
     const banks = await getBanks()
     return NextResponse.json(banks)
   } catch {
-    return NextResponse.json(DEFAULT_BANKS)
+    return NextResponse.json([])
   }
 }
 
