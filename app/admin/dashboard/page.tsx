@@ -403,7 +403,7 @@ export default function AdminDashboard() {
 
         {/* ── Food banks ── */}
         <section style={{ marginBottom: 28 }}>
-          {/* Bank tabs — mobile only (sidebar handles desktop) */}
+          {/* Bank tabs — mobile only (sidebar handles bank switching on desktop) */}
           {!isDesktop && (
             <>
               <div style={sectionHead}>Food banks</div>
@@ -427,6 +427,17 @@ export default function AdminDashboard() {
                 )}
               </div>
             </>
+          )}
+
+          {/* Add bank button — desktop (sidebar has bank list but not a prominent add button) */}
+          {isDesktop && isSuper && (
+            <div style={{ marginBottom: 12 }}>
+              <button onClick={() => setShowAddBank(v => !v)} style={{
+                ...btnOutline,
+                border: `0.5px ${showAddBank ? 'solid #27500A' : 'dashed #ccc'}`,
+                color: showAddBank ? '#27500A' : '#888',
+              }}>+ Add bank</button>
+            </div>
           )}
 
           {/* Add bank form */}
