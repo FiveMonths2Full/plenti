@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import { useIsDesktop } from '@/lib/hooks'
 import { Item, CatalogItem } from '@/lib/types'
 import { EmptyState, Toast } from '@/components/ui'
+import SupportWidget from '@/components/SupportWidget'
 
 interface SessionInfo { role: 'super' | 'bank'; bankId: number | null }
 
@@ -398,6 +399,7 @@ export default function BankDashboard() {
       </div>{/* /main content */}
 
       <Toast message={toast.message} visible={toast.visible} />
+      <SupportWidget source="bank_dashboard" />
     </main>
   )
 }

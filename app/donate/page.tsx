@@ -7,6 +7,7 @@ import BankSelector from '@/components/BankSelector'
 import NeedsView from '@/components/NeedsView'
 import MyListView from '@/components/MyListView'
 import { Toast } from '@/components/ui'
+import SupportWidget from '@/components/SupportWidget'
 
 type Tab = 'needs' | 'list'
 
@@ -48,11 +49,30 @@ export default function Donate() {
         position: 'sticky', top: 0,
         background: '#fff', zIndex: 10,
       }}>
-        <a href="/" style={{ textDecoration: 'none', display: 'block', width: 'fit-content' }}>
-          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, fontWeight: 400, letterSpacing: -0.5, marginBottom: 2, color: '#111' }}>
-            Plenti
-          </h1>
-        </a>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <a href="/" style={{ textDecoration: 'none', display: 'block' }}>
+            <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, fontWeight: 400, letterSpacing: -0.5, marginBottom: 2, color: '#111' }}>
+              Plenti
+            </h1>
+          </a>
+          <button
+            onClick={handleShare}
+            title="Copy share link"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: 'transparent', border: '0.5px solid #ddd',
+              borderRadius: 8, padding: '6px 10px',
+              fontSize: 12, color: '#555', fontFamily: 'inherit',
+              cursor: 'pointer', marginTop: 4, flexShrink: 0,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            Share
+          </button>
+        </div>
         <p style={{ fontSize: 13, color: '#888', marginBottom: 2 }}>Give what&apos;s actually needed.</p>
         <p style={{ fontSize: 12, color: '#bbb', marginBottom: 0 }}>See what your local food bank is short on before your next grocery run.</p>
         <BankSelector />
@@ -94,6 +114,7 @@ export default function Donate() {
       </nav>
 
       <Toast message={toast.message} visible={toast.visible} />
+      <SupportWidget source="donor" bottomOffset={96} />
     </main>
   )
 }

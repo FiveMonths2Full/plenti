@@ -5,11 +5,16 @@ import { useStore } from '@/lib/store'
 import { useIsDesktop } from '@/lib/hooks'
 import { Item, CatalogItem } from '@/lib/types'
 import { EmptyState, Toast } from '@/components/ui'
+import SupportWidget from '@/components/SupportWidget'
 
 interface SessionInfo { role: 'super' | 'bank'; bankId: number | null }
 interface CatalogRequest {
   id: number; name: string; detail: string; status: string
   bank_name: string | null; created_at: string
+}
+
+interface FeedbackEntry {
+  id: number; message: string; email: string | null; source: string | null; created_at: string
 }
 
 export default function AdminDashboard() {
@@ -71,6 +76,11 @@ export default function AdminDashboard() {
   const [showRequests,      setShowRequests]       = useState(false)
   const [requests,          setRequests]           = useState<CatalogRequest[]>([])
   const [requestsLoading,   setRequestsLoading]    = useState(false)
+
+  // Feedback (super)
+  const [showFeedback,    setShowFeedback]    = useState(false)
+  const [feedback,        setFeedback]        = useState<FeedbackEntry[]>([])
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/session', { cache: 'no-store' })
@@ -315,6 +325,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (showRequests && isSuper) loadRequests()
   }, [showRequests, isSuper])
+
+  useEffect(() => {
+    if (!showFeedback || !isSuper) return
+    setFeedbackLoading(true)
+    fetch('/api/support')
+      .then(r => r.json())
+      .then((rows: FeedbackEntry[]) => setFeedback(rows))
+      .catch(() => {})
+      .finally(() => setFeedbackLoading(false))
+  }, [showFeedback, isSuper])
 
   const sortedItems = activeBank
     ? [...activeBank.items].sort((a, b) =>
@@ -853,10 +873,53 @@ export default function AdminDashboard() {
             )}
           </section>
         )}
+
+        {/* ── Feedback (super only) ── */}
+        {isSuper && (
+          <section style={{ marginBottom: 32 }}>
+            <button
+              onClick={() => setShowFeedback(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontFamily: 'inherit' }}
+            >
+              <span style={sectionHead as React.CSSProperties}>
+                Feedback{feedback.length > 0 && ` (${feedback.length})`}
+              </span>
+              <span style={{ fontSize: 11, color: '#aaa' }}>{showFeedback ? '▲' : '▼'}</span>
+            </button>
+
+            {showFeedback && (
+              feedbackLoading ? (
+                <div style={{ fontSize: 13, color: '#aaa', padding: '12px 0' }}>Loading…</div>
+              ) : feedback.length === 0 ? (
+                <EmptyState icon="💬" label="No feedback yet" sub="Submitted messages will appear here." />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {feedback.map(f => (
+                    <div key={f.id} style={{ ...card }}>
+                      <p style={{ fontSize: 13, color: '#111', margin: '0 0 6px', lineHeight: 1.5 }}>{f.message}</p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {f.email && <span style={{ fontSize: 11, color: '#555' }}>{f.email}</span>}
+                        {f.source && (
+                          <span style={{ fontSize: 11, color: '#aaa', background: '#f4f4f2', borderRadius: 4, padding: '2px 6px' }}>
+                            {f.source.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        <span style={{ fontSize: 11, color: '#bbb', marginLeft: 'auto' }}>
+                          {new Date(f.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </section>
+        )}
       </div>
       </div>{/* /main content */}
 
       <Toast message={toast.message} visible={toast.visible} />
+      <SupportWidget source="admin_dashboard" />
     </main>
   )
 }
