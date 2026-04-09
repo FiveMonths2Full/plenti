@@ -38,7 +38,7 @@ export default function BankDashboard() {
   const [eiPriority, setEiPriority] = useState<Item['priority']>('medium')
 
   useEffect(() => {
-    fetch('/api/admin/session')
+    fetch('/api/admin/session', { cache: 'no-store' })
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then((d: SessionInfo) => {
         if (d.role === 'super') {

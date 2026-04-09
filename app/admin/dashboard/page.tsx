@@ -72,7 +72,7 @@ export default function AdminDashboard() {
   const [requestsLoading,   setRequestsLoading]    = useState(false)
 
   useEffect(() => {
-    fetch('/api/admin/session')
+    fetch('/api/admin/session', { cache: 'no-store' })
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then((d: SessionInfo) => setSession(d))
       .catch(() => router.replace('/admin'))

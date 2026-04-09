@@ -67,7 +67,8 @@ export async function POST(request: Request) {
   const sessionData = JSON.stringify({ role, bankId: authenticatedBankId })
   const isProduction = process.env.NODE_ENV === 'production'
 
-  const response = NextResponse.json({ ok: true, role })
+  const redirectTo = role === 'bank' ? '/admin/bank-dashboard' : '/admin/dashboard'
+  const response = NextResponse.json({ ok: true, role, redirectTo })
   response.cookies.set('plenti_session', sessionData, {
     path: '/',
     sameSite: 'lax',

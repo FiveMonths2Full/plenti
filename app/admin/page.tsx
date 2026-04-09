@@ -33,8 +33,8 @@ export default function AdminLogin() {
         }),
       })
       if (res.ok) {
-        const data = await res.json() as { ok: boolean; role: string }
-        window.location.href = data.role === 'bank' ? '/admin/bank-dashboard' : '/admin/dashboard'
+        const data = await res.json() as { ok: boolean; role: string; redirectTo: string }
+        window.location.href = data.redirectTo
       } else if (res.status === 429) {
         setError('Too many attempts. Try again later.')
         setPw('')
