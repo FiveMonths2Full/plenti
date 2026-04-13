@@ -54,7 +54,9 @@ export default function NeedsView() {
                 {item.name}
               </div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>
-                {item.detail}{item.qty ? ` · ${item.qty} needed` : ''}
+                {item.detail}
+                {item.size ? ` · ${item.size}` : ''}
+                {item.qty ? ` · ${item.qty} needed` : ''}
               </div>
             </div>
 

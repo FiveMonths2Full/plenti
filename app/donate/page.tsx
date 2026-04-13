@@ -6,10 +6,11 @@ import { trackEvent } from '@/lib/analytics'
 import BankSelector from '@/components/BankSelector'
 import NeedsView from '@/components/NeedsView'
 import MyListView from '@/components/MyListView'
+import WishlistView from '@/components/WishlistView'
 import { Toast } from '@/components/ui'
 import SupportWidget from '@/components/SupportWidget'
 
-type Tab = 'needs' | 'list'
+type Tab = 'needs' | 'list' | 'wishlist'
 
 export default function Donate() {
   const { selected, activeBankId } = useStore()
@@ -87,6 +88,13 @@ export default function Donate() {
             </div>
             <NeedsView />
           </>
+        ) : tab === 'wishlist' ? (
+          <>
+            <div style={{ padding: '16px 20px 8px', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa' }}>
+              Wishlist
+            </div>
+            <WishlistView />
+          </>
         ) : (
           <>
             <div style={{ padding: '16px 20px 8px', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa' }}>
@@ -106,6 +114,7 @@ export default function Donate() {
         zIndex: 20,
       }}>
         <TabBtn label="What's needed" active={tab === 'needs'} onClick={() => setTab('needs')} />
+        <TabBtn label="Wishlist" active={tab === 'wishlist'} onClick={() => setTab('wishlist')} />
         <TabBtn
           label={selCount > 0 ? `My list (${selCount})` : 'My list'}
           active={tab === 'list'}

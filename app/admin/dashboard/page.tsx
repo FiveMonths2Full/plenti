@@ -8,6 +8,21 @@ import { EmptyState, Toast } from '@/components/ui'
 import SupportWidget from '@/components/SupportWidget'
 
 interface SessionInfo { role: 'super' | 'bank'; bankId: number | null }
+
+interface DonationLineItem {
+  id: number; itemId: number | null; itemName: string; itemCategory: string | null
+  itemSize: string | null; priorityAtDonation: string | null
+  qtyPledged: number; qtyConfirmed: number | null; fulfillmentRate: number | null
+}
+interface Donation {
+  id: number; status: 'pending' | 'confirmed' | 'rejected'
+  donorName: string | null; donorEmail: string | null; donorTotalDonations: number | null
+  donorNote: string | null; referralSource: string | null
+  itemCount: number; totalQtyPledged: number; totalQtyConfirmed: number | null
+  createdAt: string; confirmedAt: string | null
+  items: DonationLineItem[]
+}
+
 interface CatalogRequest {
   id: number; name: string; detail: string; status: string
   bank_name: string | null; created_at: string
@@ -44,6 +59,7 @@ export default function AdminDashboard() {
   const [catDropdown,    setCatDropdown]    = useState(false)
   const [selectedCat,    setSelectedCat]    = useState<CatalogItem | null>(null)
   const [niQty,          setNiQty]          = useState('')
+  const [niSize,         setNiSize]         = useState('')
   const [niPriority,     setNiPriority]     = useState<Item['priority']>('medium')
   const catRef = useRef<HTMLDivElement>(null)
 
@@ -57,6 +73,7 @@ export default function AdminDashboard() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [eiName,     setEiName]     = useState('')
   const [eiDetail,   setEiDetail]   = useState('')
+  const [eiSize,     setEiSize]     = useState('')
   const [eiQty,      setEiQty]      = useState('')
   const [eiPriority, setEiPriority] = useState<Item['priority']>('medium')
 
@@ -66,9 +83,11 @@ export default function AdminDashboard() {
   const [editingCatId,      setEditingCatId]       = useState<number | null>(null)
   const [ecName,            setEcName]             = useState('')
   const [ecDetail,          setEcDetail]           = useState('')
+  const [ecSize,            setEcSize]             = useState('')
   const [ecCategory,        setEcCategory]         = useState('')
   const [newCatName,        setNewCatName]         = useState('')
   const [newCatDetail,      setNewCatDetail]       = useState('')
+  const [newCatSize,        setNewCatSize]         = useState('')
   const [newCatCategory,    setNewCatCategory]     = useState('')
   const [catSaving,         setCatSaving]          = useState(false)
 
@@ -76,6 +95,14 @@ export default function AdminDashboard() {
   const [showRequests,      setShowRequests]       = useState(false)
   const [requests,          setRequests]           = useState<CatalogRequest[]>([])
   const [requestsLoading,   setRequestsLoading]    = useState(false)
+
+  // Donations (super)
+  const [showDonations,         setShowDonations]         = useState(false)
+  const [donationsBankId,       setDonationsBankId]       = useState<number | null>(null)
+  const [donations,             setDonations]             = useState<Donation[]>([])
+  const [donationsLoading,      setDonationsLoading]      = useState(false)
+  const [confirmingId,          setConfirmingId]          = useState<number | null>(null)
+  const [confirmQtys,           setConfirmQtys]           = useState<Record<number, string>>({})
 
   // Feedback (super)
   const [showFeedback,    setShowFeedback]    = useState(false)
@@ -193,6 +220,7 @@ export default function AdminDashboard() {
   function handleSelectCatalogItem(item: CatalogItem) {
     setSelectedCat(item)
     setCatQuery(item.name)
+    setNiSize(item.size || '')
     setCatDropdown(false)
     setShowRequest(false)
     setReqName(''); setReqDetail('')
@@ -202,9 +230,10 @@ export default function AdminDashboard() {
     if (!activeBankId || !selectedCat) return
     addItem(activeBankId, {
       name: selectedCat.name, detail: selectedCat.detail,
+      size: niSize.trim() || null,
       qty: parseInt(niQty) || 0, priority: niPriority,
     })
-    setCatQuery(''); setSelectedCat(null); setNiQty(''); setNiPriority('medium')
+    setCatQuery(''); setSelectedCat(null); setNiQty(''); setNiSize(''); setNiPriority('medium')
     showToast('Item added')
   }
 
@@ -232,6 +261,7 @@ export default function AdminDashboard() {
   function startEditItem(item: Item) {
     setEditingItemId(item.id)
     setEiName(item.name); setEiDetail(item.detail)
+    setEiSize(item.size || '')
     setEiQty(String(item.qty)); setEiPriority(item.priority)
   }
 
@@ -239,6 +269,7 @@ export default function AdminDashboard() {
     if (!activeBankId || !editingItemId || !eiName.trim()) return
     updateItem(activeBankId, editingItemId, {
       name: eiName.trim(), detail: eiDetail.trim(),
+      size: eiSize.trim() || null,
       qty: parseInt(eiQty) || 0, priority: eiPriority,
     })
     setEditingItemId(null)
@@ -259,6 +290,55 @@ export default function AdminDashboard() {
     showToast('Share link copied')
   }
 
+  // Donations
+  async function loadDonations(bankId: number) {
+    setDonationsLoading(true)
+    try {
+      const res = await fetch(`/api/banks/${bankId}/donations`, { cache: 'no-store' })
+      if (res.ok) setDonations(await res.json() as Donation[])
+    } finally {
+      setDonationsLoading(false)
+    }
+  }
+
+  async function handleConfirmDonation(donation: Donation, status: 'confirmed' | 'rejected') {
+    const items = status === 'confirmed'
+      ? donation.items.map(di => ({
+          donationItemId: di.id,
+          qtyConfirmed: parseInt(confirmQtys[di.id] ?? String(di.qtyPledged)) || 0,
+        }))
+      : undefined
+    const res = await fetch(`/api/donations/${donation.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, items }),
+    })
+    if (res.ok) {
+      setConfirmingId(null)
+      setConfirmQtys({})
+      showToast(status === 'confirmed' ? 'Donation confirmed' : 'Donation rejected')
+      if (donationsBankId) loadDonations(donationsBankId)
+    } else {
+      showToast('Error updating donation')
+    }
+  }
+
+  const confirmedDonations = donations.filter(d => d.status === 'confirmed')
+  const runningTotals = (() => {
+    const map = new Map<string, { pledged: number; confirmed: number }>()
+    for (const d of donations) {
+      for (const item of d.items) {
+        const existing = map.get(item.itemName) || { pledged: 0, confirmed: 0 }
+        existing.pledged += item.qtyPledged
+        existing.confirmed += item.qtyConfirmed ?? 0
+        map.set(item.itemName, existing)
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.pledged - a.pledged)
+  })()
+
   // Catalog management
   async function handleSaveCatalogItem(id: number) {
     setCatSaving(true)
@@ -266,7 +346,7 @@ export default function AdminDashboard() {
       const res = await fetch(`/api/catalog/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: ecName, detail: ecDetail, category: ecCategory }),
+        body: JSON.stringify({ name: ecName, detail: ecDetail, size: ecSize, category: ecCategory }),
       })
       if (res.ok) {
         await refreshCatalog()
@@ -292,11 +372,11 @@ export default function AdminDashboard() {
       const res = await fetch('/api/catalog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCatName.trim(), detail: newCatDetail.trim(), category: newCatCategory.trim() || null }),
+        body: JSON.stringify({ name: newCatName.trim(), detail: newCatDetail.trim(), size: newCatSize.trim() || null, category: newCatCategory.trim() || null }),
       })
       if (res.ok) {
         await refreshCatalog()
-        setNewCatName(''); setNewCatDetail(''); setNewCatCategory('')
+        setNewCatName(''); setNewCatDetail(''); setNewCatSize(''); setNewCatCategory('')
         showToast('Added to catalog')
       } else if (res.status === 409) {
         showToast('Item already in catalog')
@@ -332,6 +412,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (showRequests && isSuper) loadRequests()
   }, [showRequests, isSuper])
+
+  // Set default donations bank when banks load
+  useEffect(() => {
+    if (donationsBankId === null && visibleBanks.length > 0) {
+      setDonationsBankId(visibleBanks[0].id)
+    }
+  }, [visibleBanks, donationsBankId])
+
+  useEffect(() => {
+    if (showDonations && donationsBankId) loadDonations(donationsBankId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDonations, donationsBankId])
 
   useEffect(() => {
     if (!showFeedback || !isSuper) return
@@ -568,6 +660,8 @@ export default function AdminDashboard() {
                           placeholder="Item name" style={{ ...fi, flex: 2, minWidth: 140, fontSize: 13 }} />
                         <input value={eiDetail} onChange={e => setEiDetail(e.target.value)}
                           placeholder="Detail / hint" style={{ ...fi, flex: 2, minWidth: 140, fontSize: 13 }} />
+                        <input value={eiSize} onChange={e => setEiSize(e.target.value)}
+                          placeholder="Size (e.g. 16 oz)" style={{ ...fi, flex: 1, minWidth: 110, fontSize: 13 }} />
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <input value={eiQty} onChange={e => setEiQty(e.target.value)}
@@ -589,7 +683,9 @@ export default function AdminDashboard() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 500 }}>{item.name}</div>
                         <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>
-                          {item.detail}{item.qty ? ` · ${item.qty} needed` : ''}
+                          {item.detail}
+                          {item.size ? ` · ${item.size}` : ''}
+                          {item.qty ? ` · ${item.qty} needed` : ''}
                           {' · '}
                           <span style={{ color: item.priority === 'high' ? '#B94040' : item.priority === 'medium' ? '#9A6B00' : '#3B6D11' }}>
                             {item.priority}
@@ -665,7 +761,9 @@ export default function AdminDashboard() {
                           >
                             <div style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</div>
                             <div style={{ fontSize: 11, color: '#aaa' }}>
-                              {c.detail}{c.category ? ` · ${c.category}` : ''}
+                              {c.detail}
+                              {c.size ? ` · ${c.size}` : ''}
+                              {c.category ? ` · ${c.category}` : ''}
                             </div>
                           </button>
                         ))}
@@ -696,6 +794,11 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <input
+                      value={niSize} onChange={e => setNiSize(e.target.value)}
+                      placeholder="Size (e.g. 16 oz, 1 lb)"
+                      style={{ ...fi, width: 150 }}
+                    />
+                    <input
                       value={niQty} onChange={e => setNiQty(e.target.value)}
                       type="number" min={1} placeholder="Qty needed"
                       style={{ ...fi, width: 110 }}
@@ -709,7 +812,7 @@ export default function AdminDashboard() {
                     <button onClick={handleAddItem} style={btnPrimary}>
                       Add to {activeBank.name}
                     </button>
-                    <button onClick={() => { setSelectedCat(null); setCatQuery('') }} style={btnGhost}>
+                    <button onClick={() => { setSelectedCat(null); setCatQuery(''); setNiSize('') }} style={btnGhost}>
                       Clear
                     </button>
                   </div>
@@ -776,6 +879,8 @@ export default function AdminDashboard() {
                               placeholder="Name" style={{ ...fi, flex: 2, minWidth: 130, fontSize: 13 }} />
                             <input value={ecDetail} onChange={e => setEcDetail(e.target.value)}
                               placeholder="Detail" style={{ ...fi, flex: 2, minWidth: 130, fontSize: 13 }} />
+                            <input value={ecSize} onChange={e => setEcSize(e.target.value)}
+                              placeholder="Size (e.g. 16 oz)" style={{ ...fi, flex: 1, minWidth: 110, fontSize: 13 }} />
                             <input value={ecCategory} onChange={e => setEcCategory(e.target.value)}
                               placeholder="Category" style={{ ...fi, flex: 1, minWidth: 100, fontSize: 13 }} />
                           </div>
@@ -792,11 +897,13 @@ export default function AdminDashboard() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</div>
                             <div style={{ fontSize: 11, color: '#aaa' }}>
-                              {c.detail}{c.category ? ` · ${c.category}` : ''}
+                              {c.detail}
+                              {c.size ? ` · ${c.size}` : ''}
+                              {c.category ? ` · ${c.category}` : ''}
                             </div>
                           </div>
                           <button
-                            onClick={() => { setEditingCatId(c.id); setEcName(c.name); setEcDetail(c.detail); setEcCategory(c.category || '') }}
+                            onClick={() => { setEditingCatId(c.id); setEcName(c.name); setEcDetail(c.detail); setEcSize(c.size || ''); setEcCategory(c.category || '') }}
                             style={{ ...btnGhost, fontSize: 12, padding: '4px 10px' }}
                           >Edit</button>
                         </div>
@@ -818,6 +925,8 @@ export default function AdminDashboard() {
                       placeholder="Item name" style={{ ...fi, flex: 2, minWidth: 140 }} />
                     <input value={newCatDetail} onChange={e => setNewCatDetail(e.target.value)}
                       placeholder="Detail / hint" style={{ ...fi, flex: 2, minWidth: 140 }} />
+                    <input value={newCatSize} onChange={e => setNewCatSize(e.target.value)}
+                      placeholder="Size (e.g. 16 oz, 1 lb)" style={{ ...fi, flex: 1, minWidth: 140 }} />
                     <input value={newCatCategory} onChange={e => setNewCatCategory(e.target.value)}
                       placeholder="Category" style={{ ...fi, flex: 1, minWidth: 120 }} />
                   </div>
@@ -877,6 +986,178 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               )
+            )}
+          </section>
+        )}
+
+        {/* ── Donations (super only) ── */}
+        {isSuper && (
+          <section style={{ marginBottom: 28 }}>
+            <button
+              onClick={() => setShowDonations(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 10,
+                fontFamily: 'inherit',
+              }}
+            >
+              <span style={sectionHead as React.CSSProperties}>
+                Donations
+                {donations.filter(d => d.status === 'pending').length > 0 && (
+                  <span style={{
+                    marginLeft: 6, background: '#B94040', color: '#fff',
+                    fontSize: 10, borderRadius: 6, padding: '1px 5px',
+                  }}>
+                    {donations.filter(d => d.status === 'pending').length}
+                  </span>
+                )}
+              </span>
+              <span style={{ fontSize: 11, color: '#aaa' }}>{showDonations ? '▲' : '▼'}</span>
+            </button>
+
+            {showDonations && (
+              <>
+                {/* Bank filter */}
+                <div style={{ marginBottom: 12 }}>
+                  <select
+                    value={donationsBankId ?? ''}
+                    onChange={e => {
+                      const id = parseInt(e.target.value)
+                      setDonationsBankId(id)
+                      setDonations([])
+                    }}
+                    style={{ ...fi, width: 'auto', fontSize: 13 }}
+                  >
+                    {banks.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {donationsLoading ? (
+                  <div style={{ fontSize: 13, color: '#aaa', padding: '8px 0' }}>Loading…</div>
+                ) : donations.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#aaa', padding: '8px 0' }}>No donations yet for this bank.</div>
+                ) : (
+                  <>
+                    {/* Donation list */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                      {donations.map(d => (
+                        <div key={d.id} style={{
+                          background: '#fff', border: '0.5px solid #e8e8e8', borderRadius: 12, overflow: 'hidden',
+                        }}>
+                          <div style={{ padding: '10px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500 }}>
+                                {d.donorName ?? 'Anonymous'}
+                                {d.donorTotalDonations && d.donorTotalDonations > 1 && (
+                                  <span style={{ marginLeft: 6, fontSize: 11, color: '#3B6D11' }}>
+                                    ({d.donorTotalDonations} donations total)
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{
+                                fontSize: 11, fontWeight: 500, borderRadius: 6, padding: '2px 7px',
+                                background: d.status === 'pending' ? '#FEF9EE' : d.status === 'confirmed' ? '#EAF3DE' : '#FEF3EE',
+                                color: d.status === 'pending' ? '#9A6B00' : d.status === 'confirmed' ? '#27500A' : '#993C1D',
+                                border: `0.5px solid ${d.status === 'pending' ? '#F0D07A' : d.status === 'confirmed' ? '#C0DD97' : '#F5C4B3'}`,
+                              }}>
+                                {d.status}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#aaa', marginBottom: 6 }}>
+                              {d.donorEmail ? `${d.donorEmail} · ` : ''}
+                              {new Date(d.createdAt).toLocaleDateString()} · {d.itemCount} item{d.itemCount !== 1 ? 's' : ''} · {d.totalQtyPledged} units pledged
+                              {d.referralSource && d.referralSource !== 'direct' && ` · via ${d.referralSource}`}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {d.items.map(item => (
+                                <div key={item.id} style={{ fontSize: 12, color: '#555' }}>
+                                  • {item.itemName}
+                                  {item.itemSize && ` (${item.itemSize})`}
+                                  {' '}×{item.qtyPledged}
+                                  {item.qtyConfirmed !== null && item.qtyConfirmed !== item.qtyPledged && (
+                                    <span style={{ color: '#B94040' }}> → {item.qtyConfirmed} received</span>
+                                  )}
+                                  {item.qtyConfirmed !== null && item.qtyConfirmed === item.qtyPledged && (
+                                    <span style={{ color: '#3B6D11' }}> ✓</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {d.donorNote && (
+                              <div style={{ fontSize: 12, color: '#888', marginTop: 6, fontStyle: 'italic' }}>
+                                &ldquo;{d.donorNote}&rdquo;
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Confirm / Reject for pending */}
+                          {d.status === 'pending' && (
+                            <div style={{ borderTop: '0.5px solid #f0f0f0', padding: '10px 14px' }}>
+                              {confirmingId === d.id ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 500, color: '#555' }}>Confirm qty received:</div>
+                                  {d.items.map(item => (
+                                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ fontSize: 12, flex: 1, color: '#555' }}>
+                                        {item.itemName}{item.itemSize && ` (${item.itemSize})`}
+                                      </span>
+                                      <span style={{ fontSize: 12, color: '#aaa', minWidth: 70 }}>Pledged: {item.qtyPledged}</span>
+                                      <input
+                                        type="number" min={0} max={item.qtyPledged}
+                                        value={confirmQtys[item.id] ?? String(item.qtyPledged)}
+                                        onChange={e => setConfirmQtys(q => ({ ...q, [item.id]: e.target.value }))}
+                                        style={{ ...fi, width: 70, fontSize: 12, padding: '5px 8px' }}
+                                      />
+                                    </div>
+                                  ))}
+                                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                                    <button onClick={() => handleConfirmDonation(d, 'confirmed')} style={btnPrimary}>Save confirmation</button>
+                                    <button onClick={() => { setConfirmingId(null); setConfirmQtys({}) }} style={btnGhost}>Cancel</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button onClick={() => setConfirmingId(d.id)} style={btnPrimary}>Confirm received</button>
+                                  <button onClick={() => handleConfirmDonation(d, 'rejected')} style={btnDanger}>Reject</button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Running totals */}
+                    {runningTotals.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: '#555', marginBottom: 10 }}>
+                          Running totals ({confirmedDonations.length} confirmed donation{confirmedDonations.length !== 1 ? 's' : ''})
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', gap: 8, fontSize: 11, fontWeight: 500, color: '#aaa', marginBottom: 4 }}>
+                            <span style={{ flex: 1 }}>Item</span>
+                            <span style={{ width: 60, textAlign: 'right' }}>Pledged</span>
+                            <span style={{ width: 60, textAlign: 'right' }}>Received</span>
+                            <span style={{ width: 50, textAlign: 'right' }}>Rate</span>
+                          </div>
+                          {runningTotals.slice(0, 15).map(row => (
+                            <div key={row.name} style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center' }}>
+                              <span style={{ flex: 1, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+                              <span style={{ width: 60, textAlign: 'right', color: '#888' }}>{row.pledged}</span>
+                              <span style={{ width: 60, textAlign: 'right', color: '#555' }}>{row.confirmed}</span>
+                              <span style={{ width: 50, textAlign: 'right', color: row.confirmed >= row.pledged ? '#3B6D11' : '#9A6B00' }}>
+                                {row.pledged > 0 ? Math.round((row.confirmed / row.pledged) * 100) : 0}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
             )}
           </section>
         )}

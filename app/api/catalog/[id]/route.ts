@@ -10,12 +10,13 @@ export async function PATCH(
   if (!session || session.role !== 'super') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const { name, detail, category } = await request.json() as {
-    name?: string; detail?: string; category?: string
+  const { name, detail, size, category } = await request.json() as {
+    name?: string; detail?: string; size?: string; category?: string
   }
   const id = parseInt(params.id)
   if (name     !== undefined) await sql`UPDATE item_catalog SET name = ${name} WHERE id = ${id}`
   if (detail   !== undefined) await sql`UPDATE item_catalog SET detail = ${detail} WHERE id = ${id}`
+  if (size     !== undefined) await sql`UPDATE item_catalog SET size = ${size} WHERE id = ${id}`
   if (category !== undefined) await sql`UPDATE item_catalog SET category = ${category} WHERE id = ${id}`
   return NextResponse.json({ ok: true })
 }

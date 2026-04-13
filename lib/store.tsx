@@ -10,6 +10,8 @@ import {
 } from './storage'
 import { trackEvent } from './analytics'
 
+export interface DonorSession { id: number; name: string; email: string }
+
 interface StoreCtx {
   banks: Bank[]
   catalog: CatalogItem[]
@@ -17,14 +19,17 @@ interface StoreCtx {
   selected: SelectedMap
   donated: DonatedMap
   ready: boolean
+  donorSession: DonorSession | null
 
   setActiveBankId: (id: number) => void
+  setDonorSession: (s: DonorSession | null) => void
 
   // user actions
   toggleItem: (itemId: number) => void
   changeQty:  (itemId: number, delta: number) => void
   toggleDonated: (itemId: number) => void
   clearList: () => void
+  confirmDonation: (opts?: { referralSource?: string; donorNote?: string }) => Promise<{ donationId: number } | null>
 
   // admin actions
   addBank:    (name: string, location: string) => void
@@ -39,6 +44,16 @@ interface StoreCtx {
 
 const Ctx = createContext<StoreCtx | null>(null)
 
+const DONOR_SESSION_KEY = 'plenti_donor'
+
+function loadDonorSession(): DonorSession | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(DONOR_SESSION_KEY)
+    return raw ? JSON.parse(raw) as DonorSession : null
+  } catch { return null }
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready,      setReady]      = useState(false)
   const [banks,      setBanks]      = useState<Bank[]>([])
@@ -46,9 +61,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [activeBankId, setActiveBankIdState] = useState<number>(1)
   const [selected,   setSelected]   = useState<SelectedMap>({})
   const [donated,    setDonated]    = useState<DonatedMap>({})
+  const [donorSession, setDonorSessionState] = useState<DonorSession | null>(null)
   const [nextItemId, setNextItemId] = useState(300)
   const activeBankIdRef = useRef(activeBankId)
   const banksRef = useRef(banks)
+  const selectedRef = useRef(selected)
 
   useEffect(() => {
     activeBankIdRef.current = activeBankId
@@ -57,6 +74,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     banksRef.current = banks
   }, [banks])
+
+  useEffect(() => {
+    selectedRef.current = selected
+  }, [selected])
 
   useEffect(() => {
     // 1. Load cache immediately
@@ -68,6 +89,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setActiveBankIdState(ab)
     setSelected(loadSelected())
     setDonated(loadDonated())
+    setDonorSessionState(loadDonorSession())
     setNextItemId(maxId + 1)
     if (cached) setReady(true)
 
@@ -364,11 +386,79 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  const setDonorSession = useCallback((s: DonorSession | null) => {
+    setDonorSessionState(s)
+    if (s) {
+      localStorage.setItem(DONOR_SESSION_KEY, JSON.stringify(s))
+    } else {
+      localStorage.removeItem(DONOR_SESSION_KEY)
+    }
+  }, [])
+
+  const confirmDonation = useCallback(async (opts?: { referralSource?: string; donorNote?: string }) => {
+    const bankId = activeBankIdRef.current
+    const key = String(bankId)
+    const bank = banksRef.current.find(b => b.id === bankId)
+    const selForBank = selectedRef.current[key] || {}
+
+    if (!bank || Object.keys(selForBank).length === 0) return null
+
+    const items = bank.items
+      .filter(item => selForBank[item.id])
+      .map(item => ({
+        itemId: item.id,
+        itemName: item.name,
+        itemSize: item.size ?? null,
+        itemCategory: null as null,
+        priorityAtDonation: item.priority as string,
+        qty: selForBank[item.id] || 1,
+      }))
+
+    if (items.length === 0) return null
+
+    try {
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bankId,
+          items,
+          referralSource: opts?.referralSource ?? 'direct',
+          donorNote: opts?.donorNote,
+        }),
+      })
+      if (!res.ok) return null
+      const data = await res.json() as { donationId: number }
+
+      // Optimistically update bank item qtys in local state
+      setBanks(cur => {
+        const next = cur.map(b => {
+          if (b.id !== bankId) return b
+          return {
+            ...b,
+            items: b.items.map(item => {
+              const pledged = selForBank[item.id]
+              if (!pledged) return item
+              return { ...item, qty: Math.max(0, item.qty - pledged) }
+            }),
+          }
+        })
+        saveBanksCache(next)
+        return next
+      })
+
+      trackEvent('donation_confirmed', { bank_id: bankId, item_count: items.length })
+      return { donationId: data.donationId }
+    } catch {
+      return null
+    }
+  }, [])
+
   return (
     <Ctx.Provider value={{
-      banks, catalog, activeBankId, selected, donated, ready,
-      setActiveBankId,
-      toggleItem, changeQty, toggleDonated, clearList,
+      banks, catalog, activeBankId, selected, donated, ready, donorSession,
+      setActiveBankId, setDonorSession,
+      toggleItem, changeQty, toggleDonated, clearList, confirmDonation,
       addBank, updateBank, deleteBank, addItem, updateItem, updateItemPriority, deleteItem, refreshCatalog,
     }}>
       {children}
