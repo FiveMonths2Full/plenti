@@ -2,7 +2,7 @@
 // Strategy: Network-first with cache fallback for navigation requests,
 // Cache-first for static assets.
 
-const CACHE_NAME = 'plenti-v1'
+const CACHE_NAME = 'plenti-v2'
 
 // Static assets to pre-cache on install
 const PRECACHE_URLS = [
@@ -44,6 +44,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome-extension and other non-http(s) schemes
   if (!request.url.startsWith('http')) return
+
+  // Never cache API routes — always go to the network
+  if (new URL(request.url).pathname.startsWith('/api/')) return
 
   // Navigation requests: network-first
   if (request.mode === 'navigate') {

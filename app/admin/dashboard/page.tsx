@@ -127,8 +127,15 @@ export default function AdminDashboard() {
   const activeBank = banks.find(b => b.id === activeBankId)
   const isSuper = session?.role === 'super'
 
-  function handleLogout() {
-    fetch('/api/admin/logout', { method: 'POST' }).catch(() => {})
+  async function handleLogout() {
+    try {
+      await Promise.race([
+        fetch('/api/admin/logout', { method: 'POST' }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+      ])
+    } catch {
+      // Navigate regardless — session will expire on its own
+    }
     window.location.href = '/admin'
   }
 
