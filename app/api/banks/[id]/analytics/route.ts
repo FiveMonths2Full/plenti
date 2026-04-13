@@ -22,6 +22,16 @@ export async function GET(
     0  // epoch = all time
   ).toISOString()
 
+  const emptyResponse = {
+    summary: {
+      totalDonations: 0, confirmedDonations: 0, rejectedDonations: 0,
+      totalQtyPledged: 0, totalQtyConfirmed: 0, uniqueDonors: 0,
+      repeatDonors: 0, avgItemsPerDonation: null, avgFulfillmentRate: null, avgHoursToConfirm: null,
+    },
+    timeline: [], topItems: [], categoryBreakdown: [], peakHours: [],
+    donorRetention: { unique: 0, repeat: 0, rate: 0 },
+  }
+
   try {
     // Summary
     const { rows: summaryRows } = await sql`
@@ -155,7 +165,11 @@ export async function GET(
       },
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
+    // Tables may not exist yet (migration not run) — return empty data instead of 500
+    const msg = err instanceof Error ? err.message : ''
+    if (msg.includes('does not exist') || msg.includes('relation')) {
+      return NextResponse.json(emptyResponse)
+    }
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

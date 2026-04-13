@@ -34,7 +34,7 @@ export default function AnalyticsPage() {
   const { banks } = useStore()
   const [session, setSession] = useState<SessionInfo | null>(null)
   const [data,    setData]    = useState<AnalyticsData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [period,  setPeriod]  = useState<Period>('30d')
   const [error,   setError]   = useState('')
 
@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
 
   const bank = session?.bankId ? banks.find(b => b.id === session.bankId) : null
 
-  if (!session || !bank) {
+  if (!session) {
     return (
       <main style={{ maxWidth: 600, margin: '80px auto 0', padding: '0 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: '#aaa' }}>Loading…</div>
@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
             <a href="/admin/bank-dashboard" style={{ fontSize: 13, color: '#888', textDecoration: 'underline' }}>← Dashboard</a>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: '#111', margin: '6px 0 2px' }}>Analytics</h1>
-          <div style={{ fontSize: 13, color: '#888' }}>{bank.name}</div>
+          <div style={{ fontSize: 13, color: '#888' }}>{bank?.name ?? 'Your food bank'}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {(['7d', '30d', 'all'] as Period[]).map(p => (
@@ -158,8 +158,15 @@ export default function AnalyticsPage() {
 
       {error && <div style={{ fontSize: 13, color: '#993C1D', marginBottom: 20 }}>{error}</div>}
 
-      {loading || !data ? (
+      {loading ? (
         <div style={{ fontSize: 13, color: '#aaa', padding: '40px 0', textAlign: 'center' }}>Loading analytics…</div>
+      ) : !data ? (
+        <div style={{ fontSize: 13, color: '#aaa', padding: '40px 0', textAlign: 'center' }}>No data yet. Donations will appear here once the migration has been run and donors begin confirming.</div>
+      ) : data.summary.totalDonations === 0 ? (
+        <div style={{ background: '#f8f8f6', border: '0.5px solid #e8e8e8', borderRadius: 12, padding: '32px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 15, fontWeight: 500, color: '#555', marginBottom: 6 }}>No donations yet</div>
+          <div style={{ fontSize: 13, color: '#aaa' }}>Analytics will populate as donors confirm donations to your food bank.</div>
+        </div>
       ) : (
         <>
           {/* ── Summary cards ── */}
