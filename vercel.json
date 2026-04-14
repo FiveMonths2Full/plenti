@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/donate", "destination": "/donate" },
+    { "source": "/donate/:slug", "destination": "/donate/:slug" },
+    { "source": "/join", "destination": "/join" },
     { "source": "/admin", "destination": "/admin" },
     { "source": "/admin/dashboard", "destination": "/admin/dashboard" },
     { "source": "/admin/bank-dashboard", "destination": "/admin/bank-dashboard" },

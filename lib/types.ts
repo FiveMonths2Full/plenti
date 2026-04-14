@@ -14,6 +14,7 @@ export interface Bank {
   id: number
   name: string
   location: string
+  slug?: string | null
   items: Item[]
 }
 

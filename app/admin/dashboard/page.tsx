@@ -28,6 +28,11 @@ interface CatalogRequest {
   bank_name: string | null; created_at: string
 }
 
+interface PartnerRequest {
+  id: number; orgName: string; location: string | null; contact: string
+  email: string; message: string | null; createdAt: string
+}
+
 interface FeedbackEntry {
   id: number; message: string; email: string | null; source: string | null; created_at: string
 }
@@ -90,6 +95,11 @@ export default function AdminDashboard() {
   const [newCatSize,        setNewCatSize]         = useState('')
   const [newCatCategory,    setNewCatCategory]     = useState('')
   const [catSaving,         setCatSaving]          = useState(false)
+
+  // Partnership requests from /join form (super)
+  const [showPartnerReqs,   setShowPartnerReqs]   = useState(false)
+  const [partnerReqs,       setPartnerReqs]       = useState<PartnerRequest[]>([])
+  const [partnerReqsLoading,setPartnerReqsLoading]= useState(false)
 
   // Pending requests (super)
   const [showRequests,      setShowRequests]       = useState(false)
@@ -412,6 +422,21 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (showRequests && isSuper) loadRequests()
   }, [showRequests, isSuper])
+
+  useEffect(() => {
+    if (!showPartnerReqs || !isSuper) return
+    setPartnerReqsLoading(true)
+    fetch('/api/banks/request')
+      .then(r => r.json())
+      .then((d: PartnerRequest[]) => setPartnerReqs(d))
+      .catch(() => {})
+      .finally(() => setPartnerReqsLoading(false))
+  }, [showPartnerReqs, isSuper])
+
+  async function dismissPartnerReq(id: number) {
+    await fetch(`/api/banks/request?id=${id}`, { method: 'DELETE' }).catch(() => {})
+    setPartnerReqs(prev => prev.filter(r => r.id !== id))
+  }
 
   // Set default donations bank when banks load
   useEffect(() => {
@@ -935,6 +960,62 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </>
+            )}
+          </section>
+        )}
+
+        {/* ── Partnership requests from /join (super only) ── */}
+        {isSuper && (
+          <section>
+            <button
+              onClick={() => setShowPartnerReqs(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 10,
+                fontFamily: 'inherit',
+              }}
+            >
+              <span style={sectionHead as React.CSSProperties}>
+                Partnership requests{partnerReqs.length > 0 && ` (${partnerReqs.length})`}
+              </span>
+              <span style={{ fontSize: 11, color: '#aaa' }}>{showPartnerReqs ? '▲' : '▼'}</span>
+            </button>
+
+            {showPartnerReqs && (
+              partnerReqsLoading ? (
+                <div style={{ fontSize: 13, color: '#aaa', padding: '12px 0' }}>Loading…</div>
+              ) : partnerReqs.length === 0 ? (
+                <EmptyState icon="✓" label="No pending requests" sub="Share plenti.app/join with food banks to get started." />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {partnerReqs.map(r => (
+                    <div key={r.id} style={{ ...card }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600 }}>{r.orgName}</div>
+                          {r.location && <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>{r.location}</div>}
+                          <div style={{ fontSize: 12, color: '#555', marginTop: 4 }}>
+                            {r.contact} · <a href={`mailto:${r.email}`} style={{ color: '#27500A' }}>{r.email}</a>
+                          </div>
+                          {r.message && <div style={{ fontSize: 12, color: '#666', marginTop: 4, fontStyle: 'italic' }}>&ldquo;{r.message}&rdquo;</div>}
+                          <div style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => dismissPartnerReq(r.id)}
+                          style={{ fontSize: 11, color: '#aaa', background: 'none', border: '0.5px solid #ddd', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', flexShrink: 0 }}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>
+                    To onboard: add the bank above, set their credentials, then email them at the address shown.
+                  </p>
+                </div>
+              )
             )}
           </section>
         )}

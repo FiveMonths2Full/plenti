@@ -182,7 +182,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setBanks(prev => {
       const maxId = Math.max(0, ...prev.map(b => b.id))
       const tempId = maxId + 1
-      const optimistic = [...prev, { id: tempId, name, location, items: [] }]
+      const optimistic = [...prev, { id: tempId, name, location, slug: null, items: [] }]
       saveBanksCache(optimistic)
 
       // Fire API call

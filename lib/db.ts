@@ -3,10 +3,19 @@ import { Bank } from './types'
 
 export { sql }
 
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .substring(0, 60)
+}
+
 export async function getBanks(): Promise<Bank[]> {
   const { rows } = await sql`
     SELECT
-      b.id as bank_id, b.name as bank_name, b.location,
+      b.id as bank_id, b.name as bank_name, b.location, b.slug,
       i.id as item_id, i.name as item_name, i.detail, i.size, i.priority, i.qty, i.qty_received
     FROM banks b
     LEFT JOIN items i ON i.bank_id = b.id AND i.archived_at IS NULL
@@ -17,7 +26,7 @@ export async function getBanks(): Promise<Bank[]> {
   const bankMap = new Map<number, Bank>()
   for (const row of rows) {
     if (!bankMap.has(row.bank_id)) {
-      bankMap.set(row.bank_id, { id: row.bank_id, name: row.bank_name, location: row.location, items: [] })
+      bankMap.set(row.bank_id, { id: row.bank_id, name: row.bank_name, location: row.location, slug: row.slug ?? null, items: [] })
     }
     if (row.item_id !== null) {
       bankMap.get(row.bank_id)!.items.push({
