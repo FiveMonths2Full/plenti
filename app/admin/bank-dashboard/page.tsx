@@ -26,7 +26,7 @@ interface Donation {
 export default function BankDashboard() {
   const router = useRouter()
   const isDesktop = useIsDesktop()
-  const { banks, catalog, addItem, updateItem, deleteItem } = useStore()
+  const { banks, catalog, ready, addItem, updateItem, deleteItem } = useStore()
 
   const [session,   setSession]   = useState<SessionInfo | null>(null)
   const [toast,     setToast]     = useState({ visible: false, message: '' })
@@ -322,10 +322,13 @@ export default function BankDashboard() {
     window.location.href = '/admin'
   }
 
+  // Still checking auth or waiting for store to hydrate
   if (!session || !bank) {
+    // If store is done loading and we still can't find the bank, something is wrong
+    const msg = ready && session ? 'Bank not found. Contact your administrator.' : 'Loading…'
     return (
       <main style={{ maxWidth: 480, margin: '80px auto 0', padding: '0 20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 13, color: '#aaa' }}>Loading…</div>
+        <div style={{ fontSize: 13, color: ready && session ? '#993C1D' : '#aaa' }}>{msg}</div>
       </main>
     )
   }
