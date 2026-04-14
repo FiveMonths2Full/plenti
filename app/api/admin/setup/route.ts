@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth'
 import { sql } from '@/lib/db'
 
-// Idempotent migration — adds admin_username column if it doesn't exist.
-// Called automatically by the super admin dashboard on load.
+// Idempotent — adds credential columns to the banks table if missing.
+// Called automatically when super admin logs in.
 export async function POST() {
   const session = getAdminSession()
   if (!session || session.role !== 'super') {
@@ -11,8 +11,9 @@ export async function POST() {
   }
   try {
     await sql`ALTER TABLE banks ADD COLUMN IF NOT EXISTS admin_username VARCHAR(100) UNIQUE`
+    await sql`ALTER TABLE banks ADD COLUMN IF NOT EXISTS admin_password_hash TEXT`
     return NextResponse.json({ ok: true })
   } catch {
-    return NextResponse.json({ ok: true }) // column already exists
+    return NextResponse.json({ ok: true })
   }
 }

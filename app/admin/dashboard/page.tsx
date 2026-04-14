@@ -77,11 +77,6 @@ export default function AdminDashboard() {
   const [eiQty,      setEiQty]      = useState('')
   const [eiPriority, setEiPriority] = useState<Item['priority']>('medium')
 
-  // Database setup (super)
-  const [migrateStatus, setMigrateStatus] = useState<'idle' | 'running' | 'ok' | 'error'>('idle')
-  const [seedStatus,    setSeedStatus]    = useState<'idle' | 'running' | 'ok' | 'error'>('idle')
-  const [seedResult,    setSeedResult]    = useState('')
-
   // Catalog management (super)
   const [showCatalogMgmt,   setShowCatalogMgmt]   = useState(true)
   const [catMgmtQuery,      setCatMgmtQuery]      = useState('')
@@ -368,35 +363,6 @@ export default function AdminDashboard() {
     const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' })
     if (res.ok) { await refreshCatalog(); showToast('Removed from catalog') }
     else showToast('Error removing')
-  }
-
-  async function handleRunMigration() {
-    setMigrateStatus('running')
-    try {
-      const res = await fetch('/api/admin/migrate', { method: 'POST' })
-      setMigrateStatus(res.ok ? 'ok' : 'error')
-    } catch {
-      setMigrateStatus('error')
-    }
-  }
-
-  async function handleSeedDatabase() {
-    setSeedStatus('running'); setSeedResult('')
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' })
-      const data = await res.json() as { ok?: boolean; error?: string; catalog?: { inserted: number; skipped: number; total: number }; bankSeeded?: boolean }
-      if (res.ok && data.ok) {
-        setSeedStatus('ok')
-        setSeedResult(`${data.catalog?.inserted ?? 0} items added / ${data.catalog?.skipped ?? 0} already existed${data.bankSeeded ? ' · default bank created' : ''}`)
-        await refreshCatalog()
-      } else {
-        setSeedStatus('error')
-        setSeedResult(data.error || 'Seed failed')
-      }
-    } catch {
-      setSeedStatus('error')
-      setSeedResult('Connection error')
-    }
   }
 
   async function handleAddCatalogItem() {
@@ -878,48 +844,6 @@ export default function AdminDashboard() {
             </div>
           )}
         </section>
-
-        {/* ── Database setup (super only) ── */}
-        {isSuper && (
-          <section style={{ marginBottom: 28 }}>
-            <div style={{ ...sectionHead, marginBottom: 10 }}>Database setup</div>
-            <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>1. Run migration</div>
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Creates all required tables (donors, donations, wishlist, analytics). Safe to run more than once.</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <button
-                    onClick={handleRunMigration}
-                    disabled={migrateStatus === 'running'}
-                    style={{ ...btnPrimary, opacity: migrateStatus === 'running' ? 0.6 : 1 }}
-                  >
-                    {migrateStatus === 'running' ? 'Running…' : 'Run migration'}
-                  </button>
-                  {migrateStatus === 'ok' && <span style={{ fontSize: 12, color: '#27500A' }}>✓ Done</span>}
-                  {migrateStatus === 'error' && <span style={{ fontSize: 12, color: '#993C1D' }}>✗ Error — check server logs</span>}
-                </div>
-              </div>
-
-              <div style={{ borderTop: '0.5px solid #eee', paddingTop: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>2. Seed catalog</div>
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
-                  Loads {320}+ shelf-stable items (protein, grains, canned goods, baby, hygiene, household, pet food, and more). Also creates a default food bank if none exist. Safe to run again — existing items are updated, not duplicated.
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <button
-                    onClick={handleSeedDatabase}
-                    disabled={seedStatus === 'running'}
-                    style={{ ...btnPrimary, opacity: seedStatus === 'running' ? 0.6 : 1 }}
-                  >
-                    {seedStatus === 'running' ? 'Seeding…' : 'Seed catalog & banks'}
-                  </button>
-                  {seedStatus === 'ok' && <span style={{ fontSize: 12, color: '#27500A' }}>✓ {seedResult}</span>}
-                  {seedStatus === 'error' && <span style={{ fontSize: 12, color: '#993C1D' }}>✗ {seedResult}</span>}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* ── Catalog management (super only) ── */}
         {isSuper && (
