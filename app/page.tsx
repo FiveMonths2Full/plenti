@@ -60,7 +60,7 @@ export default function Home() {
             Find a food bank →
           </Link>
           <Link
-            href="/admin"
+            href="/join"
             style={{
               display: 'inline-block',
               background: '#fff',
@@ -74,7 +74,7 @@ export default function Home() {
               border: '0.5px solid #c8ddb8',
             }}
           >
-            Admin sign in
+            For food banks →
           </Link>
         </div>
       </section>

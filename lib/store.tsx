@@ -105,11 +105,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     fetch('/api/banks')
       .then(r => r.json())
       .then((data: Bank[]) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setBanks(data)
           saveBanksCache(data)
-          const maxApiId = Math.max(0, ...data.flatMap(bk => bk.items.map(i => i.id)))
-          setNextItemId(prev => Math.max(prev, maxApiId + 1))
+          if (data.length > 0) {
+            const maxApiId = Math.max(0, ...data.flatMap(bk => bk.items.map(i => i.id)))
+            setNextItemId(prev => Math.max(prev, maxApiId + 1))
+          }
         }
         setReady(true)
       })
