@@ -258,7 +258,7 @@ export default function IntakePage() {
               onChange={e => { setCode(e.target.value.toUpperCase()); setLookupError('') }}
               onKeyDown={e => e.key === 'Enter' && handleLookup()}
               placeholder="Enter 6-char code (e.g. A3X7K2)"
-              maxLength={8}
+              maxLength={6}
               style={{
                 flex: 1, padding: '14px 16px',
                 border: '0.5px solid #ddd', borderRadius: 12,

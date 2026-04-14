@@ -744,7 +744,11 @@ export default function BankDashboard() {
                 </span>
                 <span style={{ fontSize: 11, color: '#aaa' }}>{showDonations ? '▲' : '▼'}</span>
               </button>
-              <a href="/admin/intake" style={{ fontSize: 12, color: '#3B6D11', textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+              <a href="/admin/intake" style={{
+                fontSize: 13, fontWeight: 500, color: '#fff',
+                background: '#27500A', borderRadius: 8,
+                padding: '6px 12px', textDecoration: 'none', whiteSpace: 'nowrap',
+              }}>
                 Intake desk →
               </a>
             </div>

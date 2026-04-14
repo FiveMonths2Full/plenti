@@ -113,7 +113,14 @@ export default function AccountPage() {
             <div style={{ fontSize: 16, fontWeight: 600, color: '#111', marginBottom: 2 }}>
               Hi, {donorSession.name}
             </div>
-            <div style={{ fontSize: 13, color: '#888' }}>{donorSession.email}</div>
+            <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>{donorSession.email}</div>
+            <a href="/donate" style={{
+              display: 'inline-block', padding: '10px 20px',
+              background: '#27500A', color: '#fff', borderRadius: 10,
+              fontSize: 13, fontWeight: 600, textDecoration: 'none',
+            }}>
+              Donate again →
+            </a>
           </div>
 
           <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa', marginBottom: 12 }}>

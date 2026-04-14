@@ -13,14 +13,14 @@ export async function GET() {
       SELECT
         d.id,
         d.status,
-        d.claim_code,
-        d.item_count,
-        d.total_qty_pledged,
-        d.total_qty_confirmed,
-        d.created_at,
-        d.confirmed_at,
-        b.name AS bank_name,
-        b.location AS bank_location,
+        d.claim_code AS "claimCode",
+        d.item_count AS "itemCount",
+        d.total_qty_pledged AS "totalQtyPledged",
+        d.total_qty_confirmed AS "totalQtyConfirmed",
+        d.created_at AS "createdAt",
+        d.confirmed_at AS "confirmedAt",
+        b.name AS "bankName",
+        b.location AS "bankLocation",
         json_agg(
           json_build_object(
             'itemName', di.item_name,

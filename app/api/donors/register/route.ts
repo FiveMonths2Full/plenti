@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 
 export async function POST(request: Request) {
-  const { name, email, password } = await request.json() as {
-    name?: string; email?: string; password?: string
+  const { name, email, password, donationId } = await request.json() as {
+    name?: string; email?: string; password?: string; donationId?: number
   }
 
   if (!name?.trim() || !email?.trim() || !password) {
@@ -28,6 +28,14 @@ export async function POST(request: Request) {
       RETURNING id, name, email
     `
     const donor = rows[0] as { id: number; name: string; email: string }
+
+    // Link any anonymous donation made in this session to the new account
+    if (donationId) {
+      await sql`
+        UPDATE donations SET donor_id = ${donor.id}
+        WHERE id = ${donationId} AND donor_id IS NULL
+      `
+    }
 
     const isProduction = process.env.NODE_ENV === 'production'
     const response = NextResponse.json({ ok: true, id: donor.id, name: donor.name, email: donor.email })

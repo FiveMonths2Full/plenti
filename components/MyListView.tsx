@@ -24,6 +24,7 @@ export default function MyListView({ onShare }: Props) {
   const [confirmed,    setConfirmed]    = useState(false)
   const [confirmError, setConfirmError] = useState('')
   const [claimCode,    setClaimCode]    = useState('')
+  const [donationId,   setDonationId]   = useState<number | null>(null)
 
   // Signup form state
   const [showSignup,   setShowSignup]   = useState(false)
@@ -56,6 +57,7 @@ export default function MyListView({ onShare }: Props) {
       const result = await confirmDonation({ referralSource: 'direct' })
       if (result) {
         setClaimCode(result.claimCode)
+        setDonationId(result.donationId)
         setConfirmed(true)
         if (!donorSession) setShowSignup(true)
       } else {
@@ -77,7 +79,7 @@ export default function MyListView({ onShare }: Props) {
       const res = await fetch('/api/donors/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: signupName.trim(), email: signupEmail.trim(), password: signupPw }),
+        body: JSON.stringify({ name: signupName.trim(), email: signupEmail.trim(), password: signupPw, donationId }),
       })
       const data = await res.json() as { ok?: boolean; id?: number; name?: string; email?: string; error?: string }
       if (res.ok && data.id) {
@@ -224,7 +226,7 @@ export default function MyListView({ onShare }: Props) {
             </p>
           )}
           <button
-            onClick={() => setClaimCode('')}
+            onClick={() => { setClaimCode(''); setDonationId(null) }}
             style={{
               fontSize: 12, color: '#27500A', background: 'none', border: '0.5px solid #C0DD97',
               borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
