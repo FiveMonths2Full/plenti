@@ -41,7 +41,6 @@ export async function PATCH(
         const qtyConfirmed = Math.max(0, ci.qtyConfirmed)
         totalConfirmed += qtyConfirmed
 
-        // Get pledged qty to calculate adjustment
         const { rows: diRows } = await sql`
           SELECT qty_pledged, item_id FROM donation_items WHERE id = ${ci.donationItemId}
         `
@@ -50,28 +49,24 @@ export async function PATCH(
         const itemId = diRows[0].item_id as number | null
         const fulfillmentRate = pledged > 0 ? Math.round((qtyConfirmed / pledged) * 10000) / 100 : null
 
-        // Update line item
         await sql`
           UPDATE donation_items
           SET qty_confirmed = ${qtyConfirmed}, fulfillment_rate = ${fulfillmentRate}
           WHERE id = ${ci.donationItemId}
         `
 
-        // Adjust item qty: if confirmed < pledged, add back the difference
-        if (itemId && qtyConfirmed < pledged) {
-          const diff = pledged - qtyConfirmed
-          await sql`UPDATE items SET qty = qty + ${diff} WHERE id = ${itemId}`
+        // Increment qty_received by the confirmed amount (never touch items.qty)
+        if (itemId && qtyConfirmed > 0) {
+          await sql`UPDATE items SET qty_received = qty_received + ${qtyConfirmed} WHERE id = ${itemId}`
         }
       }
 
-      // Update donation totals
       await sql`
         UPDATE donations
         SET status = 'confirmed', confirmed_at = NOW(), total_qty_confirmed = ${totalConfirmed}
         WHERE id = ${donationId}
       `
 
-      // Increment donor's donation count if applicable
       await sql`
         UPDATE donors d
         SET donation_count = donation_count + 1
@@ -79,15 +74,7 @@ export async function PATCH(
         WHERE don.id = ${donationId} AND don.donor_id = d.id
       `
     } else if (body.status === 'rejected') {
-      // Return all pledged quantities back to the bank items
-      const { rows: diRows } = await sql`
-        SELECT item_id, qty_pledged FROM donation_items WHERE donation_id = ${donationId}
-      `
-      for (const di of diRows) {
-        if (di.item_id) {
-          await sql`UPDATE items SET qty = qty + ${di.qty_pledged as number} WHERE id = ${di.item_id as number}`
-        }
-      }
+      // Pledges never touched items.qty, so rejection has no inventory effect
       await sql`
         UPDATE donation_items SET qty_confirmed = 0, fulfillment_rate = 0 WHERE donation_id = ${donationId}
       `

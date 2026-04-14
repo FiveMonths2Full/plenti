@@ -56,7 +56,7 @@ export default function NeedsView() {
               <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>
                 {item.detail}
                 {item.size ? ` · ${item.size}` : ''}
-                {item.qty ? ` · ${item.qty} needed` : ''}
+                {(() => { const n = Math.max(0, item.qty - (item.qty_received ?? 0)); return n > 0 ? ` · ${n} needed` : '' })()}
               </div>
             </div>
 

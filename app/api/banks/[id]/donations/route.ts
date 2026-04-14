@@ -18,6 +18,7 @@ export async function GET(
       SELECT
         d.id,
         d.status,
+        d.claim_code,
         d.donor_note,
         d.referral_source,
         d.item_count,

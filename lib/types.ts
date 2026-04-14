@@ -7,6 +7,7 @@ export interface Item {
   size: string | null
   priority: 'high' | 'medium' | 'low'
   qty: number
+  qty_received?: number   // cumulative bank-confirmed quantity; absent in seed/localStorage data
 }
 
 export interface Bank {

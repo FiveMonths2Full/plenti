@@ -32,22 +32,42 @@ export async function POST(request: Request) {
   const itemCount = body.items.length
   const totalQtyPledged = body.items.reduce((sum, i) => sum + (i.qty || 1), 0)
 
-  try {
-    // Create donation record
-    const { rows: donRows } = await sql`
-      INSERT INTO donations (
-        donor_id, bank_id, status, donor_note, referral_source,
-        item_count, total_qty_pledged, dow, hour_of_day
-      )
-      VALUES (
-        ${donorId}, ${body.bankId}, 'pending', ${body.donorNote ?? null}, ${body.referralSource ?? 'direct'},
-        ${itemCount}, ${totalQtyPledged}, ${dow}, ${hourOfDay}
-      )
-      RETURNING id
-    `
-    const donationId = donRows[0].id as number
+  // Generate a unique 6-char claim code (retry on collision)
+  const genCode = () => crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()
 
-    // Insert line items and decrement bank qty
+  try {
+    let claimCode = genCode()
+    let donationId: number | null = null
+
+    // Retry up to 3 times on unique constraint violation for claim_code
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { rows: donRows } = await sql`
+          INSERT INTO donations (
+            donor_id, bank_id, status, donor_note, referral_source,
+            item_count, total_qty_pledged, dow, hour_of_day, claim_code
+          )
+          VALUES (
+            ${donorId}, ${body.bankId}, 'pending', ${body.donorNote ?? null}, ${body.referralSource ?? 'direct'},
+            ${itemCount}, ${totalQtyPledged}, ${dow}, ${hourOfDay}, ${claimCode}
+          )
+          RETURNING id
+        `
+        donationId = donRows[0].id as number
+        break
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        if (msg.includes('unique') || msg.includes('claim_code')) {
+          claimCode = genCode()
+          continue
+        }
+        throw err
+      }
+    }
+
+    if (donationId === null) throw new Error('Failed to generate unique claim code')
+
+    // Insert line items — pledges do NOT touch items.qty (only confirmed receipts do)
     for (const item of body.items) {
       const qty = item.qty || 1
       await sql`
@@ -60,15 +80,9 @@ export async function POST(request: Request) {
           ${item.priorityAtDonation ?? null}, ${qty}
         )
       `
-      // Decrement bank item qty immediately (floor at 0)
-      await sql`
-        UPDATE items
-        SET qty = GREATEST(0, qty - ${qty})
-        WHERE id = ${item.itemId}
-      `
     }
 
-    return NextResponse.json({ ok: true, donationId }, { status: 201 })
+    return NextResponse.json({ ok: true, donationId, claimCode }, { status: 201 })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: msg }, { status: 500 })

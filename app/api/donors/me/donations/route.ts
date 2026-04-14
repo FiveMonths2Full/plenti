@@ -13,6 +13,7 @@ export async function GET() {
       SELECT
         d.id,
         d.status,
+        d.claim_code,
         d.item_count,
         d.total_qty_pledged,
         d.total_qty_confirmed,

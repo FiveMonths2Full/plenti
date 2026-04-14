@@ -30,7 +30,7 @@ interface StoreCtx {
   changeQty:  (itemId: number, delta: number) => void
   toggleDonated: (itemId: number) => void
   clearList: () => void
-  confirmDonation: (opts?: { referralSource?: string; donorNote?: string }) => Promise<{ donationId: number } | null>
+  confirmDonation: (opts?: { referralSource?: string; donorNote?: string }) => Promise<{ donationId: number; claimCode: string } | null>
 
   // admin actions
   addBank:    (name: string, location: string) => void
@@ -430,32 +430,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }),
       })
       if (!res.ok) return null
-      const data = await res.json() as { donationId: number }
+      const data = await res.json() as { donationId: number; claimCode: string }
 
-      // Optimistically update bank item qtys in local state
-      setBanks(cur => {
-        const next = cur.map(b => {
-          if (b.id !== bankId) return b
-          return {
-            ...b,
-            items: b.items.map(item => {
-              const pledged = selForBank[item.id]
-              if (!pledged) return item
-              return { ...item, qty: Math.max(0, item.qty - pledged) }
-            }),
-          }
-        })
-        saveBanksCache(next)
-        return next
-      })
-
-      // Clear the current bank's list and mark donation version so account page re-fetches
+      // Clear the current bank's list and bump version so account page re-fetches
+      // Note: we do NOT optimistically change items.qty — only bank-confirmed receipts
+      // update qty_received, which is what donors see as "still needed".
       setSelected(prev => { const n = { ...prev, [key]: {} }; saveSelected(n); return n })
       setDonated(prev  => { const n = { ...prev, [key]: {} }; saveDonated(n);  return n })
       setDonationVersion(v => v + 1)
 
       trackEvent('donation_confirmed', { bank_id: bankId, item_count: items.length })
-      return { donationId: data.donationId }
+      return { donationId: data.donationId, claimCode: data.claimCode }
     } catch {
       return null
     }
