@@ -31,6 +31,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const id = parseInt(params.id)
+  // Delete dependents first in case FK constraints lack ON DELETE CASCADE
+  await sql`DELETE FROM items WHERE bank_id = ${id}`
+  await sql`DELETE FROM donations WHERE bank_id = ${id}`
   await sql`DELETE FROM banks WHERE id = ${id}`
   return NextResponse.json({ ok: true })
 }

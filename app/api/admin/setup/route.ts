@@ -18,6 +18,11 @@ export async function POST() {
     await sql`ALTER TABLE donations ADD COLUMN IF NOT EXISTS claim_code VARCHAR(8) UNIQUE`
     // Soft-delete: archived items stay in donation history but are hidden from donor view
     await sql`ALTER TABLE items ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ`
+    // Fix FK constraints to include ON DELETE CASCADE
+    await sql`ALTER TABLE items DROP CONSTRAINT IF EXISTS items_bank_id_fkey`
+    await sql`ALTER TABLE items ADD CONSTRAINT items_bank_id_fkey FOREIGN KEY (bank_id) REFERENCES banks(id) ON DELETE CASCADE`
+    await sql`ALTER TABLE donations DROP CONSTRAINT IF EXISTS donations_bank_id_fkey`
+    await sql`ALTER TABLE donations ADD CONSTRAINT donations_bank_id_fkey FOREIGN KEY (bank_id) REFERENCES banks(id) ON DELETE CASCADE`
     // Indexes for high-traffic lookups
     await sql`CREATE INDEX IF NOT EXISTS idx_donations_claim_code ON donations(claim_code)`
     await sql`CREATE INDEX IF NOT EXISTS idx_donations_donor_id ON donations(donor_id)`
