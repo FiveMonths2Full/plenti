@@ -216,8 +216,13 @@ export default function MyListView({ onShare }: Props) {
             src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${claimCode}`}
             alt={`QR code for ${claimCode}`}
             width={120} height={120}
-            style={{ borderRadius: 8, marginBottom: 14, display: 'block', margin: '0 auto 14px' }}
+            style={{ borderRadius: 8, display: 'block', margin: '0 auto 14px' }}
           />
+          {!donorSession && (
+            <p style={{ fontSize: 12, color: '#7A5500', background: '#FEF9EE', border: '0.5px solid #F0D07A', borderRadius: 8, padding: '8px 12px', margin: '0 0 12px', textAlign: 'left' }}>
+              Screenshot or write down this code. Without an account you won&apos;t be able to retrieve it — but the food bank can still confirm your drop-off even if you forget it.
+            </p>
+          )}
           <button
             onClick={() => setClaimCode('')}
             style={{
