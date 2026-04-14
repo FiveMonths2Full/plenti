@@ -33,10 +33,9 @@ export default function IntakePage() {
 
   // QR scan state
   const [scanning, setScanning] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const detectorRef = useRef<unknown>(null)
-  const rafRef = useRef<number>(0)
+  const videoRef   = useRef<HTMLVideoElement>(null)
+  const streamRef  = useRef<MediaStream | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/session', { cache: 'no-store' })
@@ -103,13 +102,9 @@ export default function IntakePage() {
     }
   }
 
-  // QR scanning via BarcodeDetector
   const stopScan = useCallback(() => {
-    cancelAnimationFrame(rafRef.current)
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop())
-      streamRef.current = null
-    }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
     setScanning(false)
   }, [])
 
@@ -118,47 +113,56 @@ export default function IntakePage() {
       setLookupError('QR scanning requires Chrome or Edge. Enter the code manually.')
       return
     }
+    setLookupError('')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       streamRef.current = stream
-      setScanning(true)
-      // Wait for video element to mount
-      setTimeout(async () => {
-        if (!videoRef.current) return
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
-        detectorRef.current = detector
-
-        const scan = async () => {
-          if (!videoRef.current || videoRef.current.readyState < 2) {
-            rafRef.current = requestAnimationFrame(scan)
-            return
-          }
-          try {
-            const barcodes = await detector.detect(videoRef.current)
-            if (barcodes.length > 0) {
-              const raw = barcodes[0].rawValue as string
-              stopScan()
-              setCode(raw.trim().toUpperCase())
-              handleLookup(raw.trim().toUpperCase())
-              return
-            }
-          } catch { /* ignore detect errors */ }
-          rafRef.current = requestAnimationFrame(scan)
-        }
-        rafRef.current = requestAnimationFrame(scan)
-      }, 100)
+      setScanning(true) // triggers useEffect below after video element mounts
     } catch {
       setLookupError('Camera access denied. Enter the code manually.')
     }
-  }, [handleLookup, stopScan])
+  }, [])
 
+  // Runs after scanning=true causes the <video> element to mount in the DOM
+  useEffect(() => {
+    if (!scanning || !videoRef.current || !streamRef.current) return
+    const video = videoRef.current
+    video.srcObject = streamRef.current
+    let active = true
+
+    video.onloadedmetadata = () => {
+      video.play().catch(() => {
+        setLookupError('Could not start camera. Enter the code manually.')
+        stopScan()
+        return
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+      intervalRef.current = setInterval(async () => {
+        if (!active || !video || video.readyState < 2) return
+        try {
+          const barcodes = await detector.detect(video)
+          if (barcodes.length > 0 && active) {
+            active = false
+            const raw = (barcodes[0].rawValue as string).trim().toUpperCase()
+            stopScan()
+            setCode(raw)
+            handleLookup(raw)
+          }
+        } catch { /* ignore per-frame errors */ }
+      }, 250)
+    }
+
+    return () => {
+      active = false
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+    }
+  }, [scanning, handleLookup, stopScan])
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(rafRef.current)
+      if (intervalRef.current) clearInterval(intervalRef.current)
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
     }
   }, [])
