@@ -174,7 +174,7 @@ export default function MyListView({ onShare }: Props) {
         </div>
       )}
 
-      {/* Success banner — shown after confirmation */}
+      {/* Success banner — shown immediately after confirmation, dismissed by "Donate again" */}
       {confirmed && (
         <div style={{
           background: '#EAF3DE', border: '0.5px solid #C0DD97',
@@ -184,30 +184,11 @@ export default function MyListView({ onShare }: Props) {
           <p style={{ fontSize: 15, fontWeight: 500, color: '#27500A', margin: '0 0 4px' }}>
             Thank you — your donation is recorded.
           </p>
-          <p style={{ fontSize: 13, color: '#3B6D11', margin: '0 0 16px' }}>
+          <p style={{ fontSize: 13, color: '#3B6D11', margin: '0 0 12px' }}>
             Every item makes a difference.
           </p>
-          {claimCode && (
-            <div style={{
-              background: '#fff', border: '0.5px solid #C0DD97', borderRadius: 12,
-              padding: '16px 12px', marginBottom: 16,
-            }}>
-              <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888', margin: '0 0 8px' }}>
-                Show this at drop-off
-              </p>
-              <div style={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 700, letterSpacing: '0.15em', color: '#27500A', marginBottom: 12 }}>
-                {claimCode}
-              </div>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${claimCode}`}
-                alt={`QR code for ${claimCode}`}
-                width={120} height={120}
-                style={{ borderRadius: 8 }}
-              />
-            </div>
-          )}
           <button
-            onClick={() => { setConfirmed(false); setClaimCode('') }}
+            onClick={() => setConfirmed(false)}
             style={{
               fontSize: 12, color: '#27500A', background: 'none', border: '0.5px solid #C0DD97',
               borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
@@ -218,8 +199,39 @@ export default function MyListView({ onShare }: Props) {
         </div>
       )}
 
-      {/* Post-donation signup prompt */}
-      {confirmed && showSignup && !signupDone && (
+      {/* Claim code card — persists until user taps "Got it", even after Donate again */}
+      {claimCode && (
+        <div style={{
+          background: '#EAF3DE', border: '0.5px solid #C0DD97',
+          borderRadius: 14, padding: 16, textAlign: 'center',
+          animation: 'fadeUp 0.3s ease',
+        }}>
+          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#3B6D11', margin: '0 0 8px' }}>
+            Show this at drop-off
+          </p>
+          <div style={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 700, letterSpacing: '0.15em', color: '#27500A', marginBottom: 12 }}>
+            {claimCode}
+          </div>
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${claimCode}`}
+            alt={`QR code for ${claimCode}`}
+            width={120} height={120}
+            style={{ borderRadius: 8, marginBottom: 14, display: 'block', margin: '0 auto 14px' }}
+          />
+          <button
+            onClick={() => setClaimCode('')}
+            style={{
+              fontSize: 12, color: '#27500A', background: 'none', border: '0.5px solid #C0DD97',
+              borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Got it
+          </button>
+        </div>
+      )}
+
+      {/* Post-donation signup prompt — persists until user creates account or skips */}
+      {claimCode && showSignup && !signupDone && (
         <div style={{
           background: '#fff', border: '0.5px solid #e8e8e8',
           borderRadius: 14, padding: 16,
@@ -229,7 +241,7 @@ export default function MyListView({ onShare }: Props) {
             Track your donations
           </p>
           <p style={{ fontSize: 12, color: '#888', margin: '0 0 12px' }}>
-            Create a free account to see your donation history.
+            Create a free account to view your donation history and re-access your drop-off code.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <input
@@ -272,7 +284,7 @@ export default function MyListView({ onShare }: Props) {
       )}
 
       {/* Signed-in confirmation */}
-      {confirmed && (signupDone || donorSession) && (
+      {claimCode && (signupDone || donorSession) && (
         <p style={{ fontSize: 12, color: '#3B6D11', textAlign: 'center', margin: 0 }}>
           Logged in as {donorSession?.name ?? signupName} · your donation was saved to your account.
         </p>
