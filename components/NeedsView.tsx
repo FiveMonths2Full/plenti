@@ -66,7 +66,7 @@ export default function NeedsView() {
                 style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
               >
                 <button
-                  onClick={() => changeQty(item.id, -1)}
+                  onClick={() => qty <= 1 ? toggleItem(item.id) : changeQty(item.id, -1)}
                   style={stepperBtn}
                 >−</button>
                 <span style={{ fontSize: 13, fontWeight: 500, minWidth: 16, textAlign: 'center' }}>

@@ -154,8 +154,8 @@ export default function MyListView({ onShare }: Props) {
         ))}
       </div>
 
-      {/* Confirm donation button — shown when all items are checked */}
-      {allDonated && !confirmed && (
+      {/* Confirm donation button — shown whenever items are selected */}
+      {selectedItems.length > 0 && !confirmed && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
             onClick={handleConfirmDonation}
