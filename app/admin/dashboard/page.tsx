@@ -985,7 +985,7 @@ export default function AdminDashboard() {
               partnerReqsLoading ? (
                 <div style={{ fontSize: 13, color: '#aaa', padding: '12px 0' }}>Loading…</div>
               ) : partnerReqs.length === 0 ? (
-                <EmptyState icon="✓" label="No pending requests" sub="Share plenti.app/join with food banks to get started." />
+                <EmptyState icon="✓" label="No pending requests" sub="Share plenti-donate.com/join with food banks to get started." />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {partnerReqs.map(r => (

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     if (process.env.RESEND_API_KEY && process.env.ADMIN_NOTIFY_EMAIL) {
       const { Resend } = await import('resend')
       const resend = new Resend(process.env.RESEND_API_KEY)
-      const FROM = process.env.EMAIL_FROM ?? 'Plenti <no-reply@plenti.app>'
+      const FROM = process.env.EMAIL_FROM ?? 'Plenti <johnhoover42@plenti-donate.com>'
       await resend.emails.send({
         from: FROM,
         to: process.env.ADMIN_NOTIFY_EMAIL,

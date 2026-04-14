@@ -4,7 +4,7 @@
 import { Resend } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM = process.env.EMAIL_FROM ?? 'Plenti <no-reply@plenti.app>'
+const FROM = process.env.EMAIL_FROM ?? 'Plenti <johnhoover42@plenti-donate.com>'
 
 export async function sendDonationConfirmed(opts: {
   to: string

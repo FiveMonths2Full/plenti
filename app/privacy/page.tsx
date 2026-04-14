@@ -41,12 +41,12 @@ export default function PrivacyPage() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Deleting your data</h2>
-        <p>To request deletion of your account and associated donation records, email us at <a href="mailto:privacy@plenti.app" style={{ color: '#27500A' }}>privacy@plenti.app</a>.</p>
+        <p>To request deletion of your account and associated donation records, email us at <a href="mailto:johnhoover42@plenti-donate.com" style={{ color: '#27500A' }}>johnhoover42@plenti-donate.com</a>.</p>
       </section>
 
       <section>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Contact</h2>
-        <p>Questions? Reach us at <a href="mailto:hello@plenti.app" style={{ color: '#27500A' }}>hello@plenti.app</a>.</p>
+        <p>Questions? Reach us at <a href="mailto:johnhoover42@plenti-donate.com" style={{ color: '#27500A' }}>johnhoover42@plenti-donate.com</a>.</p>
       </section>
     </main>
   )
