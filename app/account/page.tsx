@@ -9,6 +9,7 @@ interface DonationRecord {
   id: number
   bankName: string
   status: string
+  claimCode: string | null
   createdAt: string
   itemCount: number
   totalQtyPledged: number
@@ -162,6 +163,25 @@ export default function AccountPage() {
                       </div>
                     ))}
                   </div>
+                  {d.status === 'pending' && d.claimCode && (
+                    <div style={{
+                      marginTop: 12, padding: '12px', background: '#f8f8f6',
+                      border: '0.5px solid #e8e8e8', borderRadius: 10, textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa', marginBottom: 6 }}>
+                        Drop-off code
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, letterSpacing: '0.12em', color: '#27500A', marginBottom: 8 }}>
+                        {d.claimCode}
+                      </div>
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${d.claimCode}`}
+                        alt={`QR code for ${d.claimCode}`}
+                        width={90} height={90}
+                        style={{ borderRadius: 6 }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

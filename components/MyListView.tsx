@@ -23,6 +23,7 @@ export default function MyListView({ onShare }: Props) {
   const [confirming,   setConfirming]   = useState(false)
   const [confirmed,    setConfirmed]    = useState(false)
   const [confirmError, setConfirmError] = useState('')
+  const [claimCode,    setClaimCode]    = useState('')
 
   // Signup form state
   const [showSignup,   setShowSignup]   = useState(false)
@@ -54,6 +55,7 @@ export default function MyListView({ onShare }: Props) {
     try {
       const result = await confirmDonation({ referralSource: 'direct' })
       if (result) {
+        setClaimCode(result.claimCode)
         setConfirmed(true)
         if (!donorSession) setShowSignup(true)
       } else {
@@ -182,11 +184,30 @@ export default function MyListView({ onShare }: Props) {
           <p style={{ fontSize: 15, fontWeight: 500, color: '#27500A', margin: '0 0 4px' }}>
             Thank you — your donation is recorded.
           </p>
-          <p style={{ fontSize: 13, color: '#3B6D11', margin: '0 0 12px' }}>
+          <p style={{ fontSize: 13, color: '#3B6D11', margin: '0 0 16px' }}>
             Every item makes a difference.
           </p>
+          {claimCode && (
+            <div style={{
+              background: '#fff', border: '0.5px solid #C0DD97', borderRadius: 12,
+              padding: '16px 12px', marginBottom: 16,
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888', margin: '0 0 8px' }}>
+                Show this at drop-off
+              </p>
+              <div style={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 700, letterSpacing: '0.15em', color: '#27500A', marginBottom: 12 }}>
+                {claimCode}
+              </div>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${claimCode}`}
+                alt={`QR code for ${claimCode}`}
+                width={120} height={120}
+                style={{ borderRadius: 8 }}
+              />
+            </div>
+          )}
           <button
-            onClick={() => setConfirmed(false)}
+            onClick={() => { setConfirmed(false); setClaimCode('') }}
             style={{
               fontSize: 12, color: '#27500A', background: 'none', border: '0.5px solid #C0DD97',
               borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',

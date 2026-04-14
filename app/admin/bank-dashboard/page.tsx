@@ -16,6 +16,7 @@ interface DonationLineItem {
 }
 interface Donation {
   id: number; status: 'pending' | 'confirmed' | 'rejected'
+  claimCode: string | null
   donorName: string | null; donorEmail: string | null; donorTotalDonations: number | null
   donorNote: string | null; referralSource: string | null
   itemCount: number; totalQtyPledged: number; totalQtyConfirmed: number | null
@@ -444,6 +445,7 @@ export default function BankDashboard() {
                           {item.detail}
                           {item.size ? ` · ${item.size}` : ''}
                           {item.qty ? ` · ${item.qty} needed` : ''}
+                          {(item.qty_received ?? 0) > 0 ? ` · ${item.qty_received} received` : ''}
                           {' · '}
                           <span style={{ color: item.priority === 'high' ? '#B94040' : item.priority === 'medium' ? '#9A6B00' : '#3B6D11' }}>
                             {item.priority}
@@ -720,27 +722,32 @@ export default function BankDashboard() {
 
           {/* ── Donations section ── */}
           <div style={{ marginTop: 24 }}>
-            <button
-              onClick={() => setShowDonations(v => !v)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 10,
-                fontFamily: 'inherit',
-              }}
-            >
-              <span style={sectionHead as React.CSSProperties}>
-                Donations
-                {donations.filter(d => d.status === 'pending').length > 0 && (
-                  <span style={{
-                    marginLeft: 6, background: '#B94040', color: '#fff',
-                    fontSize: 10, borderRadius: 6, padding: '1px 5px',
-                  }}>
-                    {donations.filter(d => d.status === 'pending').length}
-                  </span>
-                )}
-              </span>
-              <span style={{ fontSize: 11, color: '#aaa' }}>{showDonations ? '▲' : '▼'}</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+              <button
+                onClick={() => setShowDonations(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, flex: 1,
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span style={sectionHead as React.CSSProperties}>
+                  Donations
+                  {donations.filter(d => d.status === 'pending').length > 0 && (
+                    <span style={{
+                      marginLeft: 6, background: '#B94040', color: '#fff',
+                      fontSize: 10, borderRadius: 6, padding: '1px 5px',
+                    }}>
+                      {donations.filter(d => d.status === 'pending').length}
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: 11, color: '#aaa' }}>{showDonations ? '▲' : '▼'}</span>
+              </button>
+              <a href="/admin/intake" style={{ fontSize: 12, color: '#3B6D11', textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+                Intake desk →
+              </a>
+            </div>
 
             {showDonations && (
               <>
@@ -780,6 +787,16 @@ export default function BankDashboard() {
                               {new Date(d.createdAt).toLocaleDateString()} · {d.itemCount} item{d.itemCount !== 1 ? 's' : ''} · {d.totalQtyPledged} units pledged
                               {d.referralSource && d.referralSource !== 'direct' && ` · via ${d.referralSource}`}
                             </div>
+                            {d.status === 'pending' && d.claimCode && (
+                              <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                                background: '#f8f8f6', border: '0.5px solid #e8e8e8', borderRadius: 8,
+                                padding: '6px 10px',
+                              }}>
+                                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#aaa' }}>Code</span>
+                                <span style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 700, letterSpacing: '0.12em', color: '#27500A' }}>{d.claimCode}</span>
+                              </div>
+                            )}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {d.items.map(item => (
                                 <div key={item.id} style={{ fontSize: 12, color: '#555' }}>
