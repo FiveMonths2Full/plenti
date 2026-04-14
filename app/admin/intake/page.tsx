@@ -2,6 +2,7 @@
 // app/admin/intake/page.tsx — Mobile-first intake desk for food bank staff
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import jsQR from 'jsqr'
 
 interface DonationItem {
   id: number
@@ -109,10 +110,6 @@ export default function IntakePage() {
   }, [])
 
   const startScan = useCallback(async () => {
-    if (!('BarcodeDetector' in window)) {
-      setLookupError('QR scanning requires Chrome or Edge. Enter the code manually.')
-      return
-    }
     setLookupError('')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -129,25 +126,46 @@ export default function IntakePage() {
     const video = videoRef.current
     video.srcObject = streamRef.current
     let active = true
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
 
     video.onloadedmetadata = () => {
       video.play().catch(() => {
         setLookupError('Could not start camera. Enter the code manually.')
         stopScan()
-        return
       })
+
+      const useNative = 'BarcodeDetector' in window
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+      const detector = useNative ? new (window as any).BarcodeDetector({ formats: ['qr_code'] }) : null
+
       intervalRef.current = setInterval(async () => {
-        if (!active || !video || video.readyState < 2) return
+        if (!active || video.readyState < 2) return
         try {
-          const barcodes = await detector.detect(video)
-          if (barcodes.length > 0 && active) {
+          let raw: string | null = null
+
+          if (detector) {
+            // Native path: Chrome Android / macOS / ChromeOS
+            const barcodes = await detector.detect(video)
+            if (barcodes.length > 0) raw = barcodes[0].rawValue as string
+          } else {
+            // jsqr path: Chrome Windows/Linux, Safari, Firefox
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            ctx?.drawImage(video, 0, 0)
+            const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height)
+            if (imageData) {
+              const result = jsQR(imageData.data, imageData.width, imageData.height)
+              if (result) raw = result.data
+            }
+          }
+
+          if (raw && active) {
             active = false
-            const raw = (barcodes[0].rawValue as string).trim().toUpperCase()
+            const code = raw.trim().toUpperCase()
             stopScan()
-            setCode(raw)
-            handleLookup(raw)
+            setCode(code)
+            handleLookup(code)
           }
         } catch { /* ignore per-frame errors */ }
       }, 250)
