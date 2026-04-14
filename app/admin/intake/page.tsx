@@ -33,23 +33,16 @@ export default function IntakePage() {
 
   // QR scan state
   const [scanning, setScanning] = useState(false)
-  const [scanSupported, setScanSupported] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const detectorRef = useRef<unknown>(null)
   const rafRef = useRef<number>(0)
 
   useEffect(() => {
-    // Check auth
     fetch('/api/admin/session', { cache: 'no-store' })
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(() => setAuthed(true))
       .catch(() => router.replace('/admin'))
-
-    // Check BarcodeDetector support
-    if ('BarcodeDetector' in window) {
-      setScanSupported(true)
-    }
   }, [router])
 
   const handleLookup = useCallback(async (codeOverride?: string) => {
@@ -121,7 +114,10 @@ export default function IntakePage() {
   }, [])
 
   const startScan = useCallback(async () => {
-    if (!('BarcodeDetector' in window)) return
+    if (!('BarcodeDetector' in window)) {
+      setLookupError('QR scanning requires Chrome or Edge. Enter the code manually.')
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       streamRef.current = stream
@@ -287,20 +283,18 @@ export default function IntakePage() {
             </div>
           )}
 
-          {scanSupported && (
-            <button
-              onClick={startScan}
-              style={{
-                width: '100%', padding: '14px 0',
-                background: 'transparent', color: '#3B6D11',
-                border: '0.5px solid #C0DD97', borderRadius: 12,
-                fontSize: 15, fontWeight: 500, cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              Scan QR Code
-            </button>
-          )}
+          <button
+            onClick={startScan}
+            style={{
+              width: '100%', padding: '14px 0',
+              background: 'transparent', color: '#3B6D11',
+              border: '0.5px solid #C0DD97', borderRadius: 12,
+              fontSize: 15, fontWeight: 500, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Scan QR Code
+          </button>
         </div>
       ) : (
         /* ── Donation found ── */
