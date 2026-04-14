@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -30,4 +32,11 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+module.exports = withSentryConfig(nextConfig, {
+  // Suppress Sentry CLI output during builds
+  silent: true,
+  // Only upload source maps when SENTRY_DSN is set
+  dryRun: !process.env.SENTRY_DSN,
+  // Disable Sentry telemetry
+  telemetry: false,
+})

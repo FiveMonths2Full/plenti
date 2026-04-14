@@ -21,13 +21,14 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string; itemId: string } }
 ) {
   const session = getAdminSession()
   if (!session || !canEditBank(session, params.id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  await sql`DELETE FROM items WHERE id = ${parseInt(params.itemId)}`
+  // Soft-delete: preserve donation history that references this item
+  await sql`UPDATE items SET archived_at = NOW() WHERE id = ${parseInt(params.itemId)}`
   return NextResponse.json({ ok: true })
 }

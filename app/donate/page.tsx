@@ -138,6 +138,9 @@ export default function Donate() {
 
       <Toast message={toast.message} visible={toast.visible} />
       <SupportWidget source="donor" bottomOffset={96} />
+      <footer style={{ textAlign: 'center', padding: '16px 0 80px', fontSize: 12, color: '#aaa' }}>
+        <a href="/privacy" style={{ color: '#aaa', textDecoration: 'underline' }}>Privacy policy</a>
+      </footer>
     </main>
   )
 }

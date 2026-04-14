@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth'
 import { sql } from '@/lib/db'
+import { sendDonationConfirmed, sendDonationRejected } from '@/lib/email'
 
 interface ConfirmItem {
   donationItemId: number
@@ -24,7 +25,11 @@ export async function PATCH(
 
   // Verify the donation belongs to a bank this admin can edit
   const { rows: donRows } = await sql`
-    SELECT bank_id FROM donations WHERE id = ${donationId}
+    SELECT d.bank_id, b.name AS bank_name, don.email AS donor_email, don.name AS donor_name
+    FROM donations d
+    JOIN banks b ON b.id = d.bank_id
+    LEFT JOIN donors don ON don.id = d.donor_id
+    WHERE d.id = ${donationId}
   `
   if (!donRows.length) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -37,16 +42,22 @@ export async function PATCH(
   try {
     if (body.status === 'confirmed' && body.items?.length) {
       let totalConfirmed = 0
+      const emailItems: Array<{ itemName: string; qtyConfirmed: number }> = []
+
       for (const ci of body.items) {
         const qtyConfirmed = Math.max(0, ci.qtyConfirmed)
         totalConfirmed += qtyConfirmed
 
         const { rows: diRows } = await sql`
-          SELECT qty_pledged, item_id FROM donation_items WHERE id = ${ci.donationItemId}
+          SELECT di.qty_pledged, di.item_id, i.name AS item_name
+          FROM donation_items di
+          LEFT JOIN items i ON i.id = di.item_id
+          WHERE di.id = ${ci.donationItemId}
         `
         if (!diRows.length) continue
         const pledged = diRows[0].qty_pledged as number
         const itemId = diRows[0].item_id as number | null
+        const itemName = (diRows[0].item_name as string | null) ?? 'Item'
         const fulfillmentRate = pledged > 0 ? Math.round((qtyConfirmed / pledged) * 10000) / 100 : null
 
         await sql`
@@ -59,6 +70,8 @@ export async function PATCH(
         if (itemId && qtyConfirmed > 0) {
           await sql`UPDATE items SET qty_received = qty_received + ${qtyConfirmed} WHERE id = ${itemId}`
         }
+
+        if (qtyConfirmed > 0) emailItems.push({ itemName, qtyConfirmed })
       }
 
       await sql`
@@ -73,6 +86,15 @@ export async function PATCH(
         FROM donations don
         WHERE don.id = ${donationId} AND don.donor_id = d.id
       `
+
+      if (donRows[0].donor_email) {
+        await sendDonationConfirmed({
+          to: donRows[0].donor_email as string,
+          donorName: (donRows[0].donor_name as string) ?? 'Donor',
+          bankName: donRows[0].bank_name as string,
+          items: emailItems,
+        })
+      }
     } else if (body.status === 'rejected') {
       // Pledges never touched items.qty, so rejection has no inventory effect
       await sql`
@@ -81,6 +103,14 @@ export async function PATCH(
       await sql`
         UPDATE donations SET status = 'rejected', confirmed_at = NOW(), total_qty_confirmed = 0 WHERE id = ${donationId}
       `
+
+      if (donRows[0].donor_email) {
+        await sendDonationRejected({
+          to: donRows[0].donor_email as string,
+          donorName: (donRows[0].donor_name as string) ?? 'Donor',
+          bankName: donRows[0].bank_name as string,
+        })
+      }
     }
 
     return NextResponse.json({ ok: true })

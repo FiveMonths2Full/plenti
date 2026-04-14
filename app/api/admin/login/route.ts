@@ -1,25 +1,12 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
-
-const MAX_ATTEMPTS = 20
-const WINDOW_MS = 15 * 60 * 1000
-const attempts = new Map<string, { count: number; resetAt: number }>()
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
-  const ip = request.headers.get('x-forwarded-for') || 'unknown'
-  const now = Date.now()
-
-  const entry = attempts.get(ip)
-  if (entry) {
-    if (now > entry.resetAt) {
-      attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    } else if (entry.count >= MAX_ATTEMPTS) {
-      return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
-    } else {
-      entry.count++
-    }
-  } else {
-    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
+  const { allowed } = checkRateLimit(ip, { max: 15, windowMs: 15 * 60 * 1000 })
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429 })
   }
 
   const body = await request.json() as { username?: string; password?: string }
@@ -79,6 +66,7 @@ export async function POST(request: Request) {
     sameSite: 'lax',
     httpOnly: true,
     secure: isProduction,
+    maxAge: 60 * 60 * 12, // 12 hours
   })
   return response
 }

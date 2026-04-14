@@ -9,7 +9,7 @@ export async function getBanks(): Promise<Bank[]> {
       b.id as bank_id, b.name as bank_name, b.location,
       i.id as item_id, i.name as item_name, i.detail, i.size, i.priority, i.qty, i.qty_received
     FROM banks b
-    LEFT JOIN items i ON i.bank_id = b.id
+    LEFT JOIN items i ON i.bank_id = b.id AND i.archived_at IS NULL
     ORDER BY b.id,
       CASE i.priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
       i.id

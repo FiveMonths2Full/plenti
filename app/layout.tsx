@@ -9,6 +9,17 @@ export const metadata: Metadata = {
   title: 'Plenti — Give what\'s actually needed',
   description: 'See what your local food banks need before you shop.',
   manifest: '/manifest.json',
+  openGraph: {
+    title: 'Plenti — Give what\'s actually needed',
+    description: 'See what your local food banks need before you shop.',
+    type: 'website',
+    siteName: 'Plenti',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Plenti — Give what\'s actually needed',
+    description: 'See what your local food banks need before you shop.',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32' },

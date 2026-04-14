@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
+  const { allowed } = checkRateLimit(ip, { max: 8, windowMs: 60 * 60 * 1000 })
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many registration attempts. Try again in an hour.' }, { status: 429 })
+  }
+
   const { name, email, password, donationId } = await request.json() as {
     name?: string; email?: string; password?: string; donationId?: number
   }
@@ -44,6 +51,7 @@ export async function POST(request: Request) {
       sameSite: 'lax',
       httpOnly: true,
       secure: isProduction,
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     })
     return response
   } catch (err: unknown) {
