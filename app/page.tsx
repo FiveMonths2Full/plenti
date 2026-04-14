@@ -76,6 +76,23 @@ export default function Home() {
           >
             For food banks →
           </Link>
+          <Link
+            href="/admin"
+            style={{
+              display: 'inline-block',
+              background: 'transparent',
+              color: '#aaa',
+              padding: '12px 24px',
+              borderRadius: 10,
+              fontSize: 15,
+              fontWeight: 500,
+              textDecoration: 'none',
+              letterSpacing: '-0.01em',
+              border: '0.5px solid #eee',
+            }}
+          >
+            Admin sign in
+          </Link>
         </div>
       </section>
 
