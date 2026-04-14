@@ -20,6 +20,7 @@ interface StoreCtx {
   donated: DonatedMap
   ready: boolean
   donorSession: DonorSession | null
+  donationVersion: number
 
   setActiveBankId: (id: number) => void
   setDonorSession: (s: DonorSession | null) => void
@@ -62,6 +63,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [selected,   setSelected]   = useState<SelectedMap>({})
   const [donated,    setDonated]    = useState<DonatedMap>({})
   const [donorSession, setDonorSessionState] = useState<DonorSession | null>(null)
+  const [donationVersion, setDonationVersion] = useState(0)
   const [nextItemId, setNextItemId] = useState(300)
   const activeBankIdRef = useRef(activeBankId)
   const banksRef = useRef(banks)
@@ -447,6 +449,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return next
       })
 
+      // Clear the current bank's list and mark donation version so account page re-fetches
+      setSelected(prev => { const n = { ...prev, [key]: {} }; saveSelected(n); return n })
+      setDonated(prev  => { const n = { ...prev, [key]: {} }; saveDonated(n);  return n })
+      setDonationVersion(v => v + 1)
+
       trackEvent('donation_confirmed', { bank_id: bankId, item_count: items.length })
       return { donationId: data.donationId }
     } catch {
@@ -456,7 +463,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      banks, catalog, activeBankId, selected, donated, ready, donorSession,
+      banks, catalog, activeBankId, selected, donated, ready, donorSession, donationVersion,
       setActiveBankId, setDonorSession,
       toggleItem, changeQty, toggleDonated, clearList, confirmDonation,
       addBank, updateBank, deleteBank, addItem, updateItem, updateItemPriority, deleteItem, refreshCatalog,

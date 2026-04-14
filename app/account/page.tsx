@@ -17,7 +17,7 @@ interface DonationRecord {
 }
 
 export default function AccountPage() {
-  const { donorSession, setDonorSession } = useStore()
+  const { donorSession, setDonorSession, donationVersion } = useStore()
   const [view,         setView]         = useState<View>('login')
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
@@ -27,7 +27,7 @@ export default function AccountPage() {
   const [donations,    setDonations]    = useState<DonationRecord[]>([])
   const [donLoading,   setDonLoading]   = useState(false)
 
-  // Load donation history once logged in
+  // Load (and reload) donation history whenever session is active or a new donation is confirmed
   useEffect(() => {
     if (!donorSession) return
     setDonLoading(true)
@@ -36,7 +36,7 @@ export default function AccountPage() {
       .then((data: DonationRecord[]) => setDonations(data))
       .catch(() => {})
       .finally(() => setDonLoading(false))
-  }, [donorSession])
+  }, [donorSession, donationVersion])
 
   async function handleLogin() {
     if (!email.trim() || !password) { setError('Enter your email and password.'); return }

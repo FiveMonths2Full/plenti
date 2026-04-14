@@ -41,13 +41,12 @@ export default function MyListView({ onShare }: Props) {
     prevAllDonated.current = allDonated
   }, [allDonated, activeBankId, selectedItems.length])
 
-  // Reset confirmation state when list changes
+  // Reset confirmation state only when the user actively un-checks items (not when we auto-cleared after confirming)
   useEffect(() => {
-    if (!allDonated) {
-      setConfirmed(false)
+    if (!allDonated && !confirmed) {
       setConfirmError('')
     }
-  }, [allDonated])
+  }, [allDonated, confirmed])
 
   async function handleConfirmDonation() {
     setConfirming(true)
@@ -93,7 +92,7 @@ export default function MyListView({ onShare }: Props) {
     }
   }
 
-  if (selectedItems.length === 0) {
+  if (selectedItems.length === 0 && !confirmed) {
     return (
       <div style={{ padding: '0 16px' }}>
         <EmptyState
@@ -117,12 +116,14 @@ export default function MyListView({ onShare }: Props) {
           <span style={{ fontSize: 14, fontWeight: 500 }}>
             {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''}
           </span>
-          <button
-            onClick={clearList}
-            style={{ fontSize: 12, color: '#888', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            clear all
-          </button>
+          {!confirmed && (
+            <button
+              onClick={clearList}
+              style={{ fontSize: 12, color: '#888', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              clear all
+            </button>
+          )}
         </div>
 
         {selectedItems.map(item => (
@@ -181,9 +182,18 @@ export default function MyListView({ onShare }: Props) {
           <p style={{ fontSize: 15, fontWeight: 500, color: '#27500A', margin: '0 0 4px' }}>
             Thank you — your donation is recorded.
           </p>
-          <p style={{ fontSize: 13, color: '#3B6D11', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#3B6D11', margin: '0 0 12px' }}>
             Every item makes a difference.
           </p>
+          <button
+            onClick={() => setConfirmed(false)}
+            style={{
+              fontSize: 12, color: '#27500A', background: 'none', border: '0.5px solid #C0DD97',
+              borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Donate again
+          </button>
         </div>
       )}
 
