@@ -6,19 +6,19 @@ import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
 import Analytics from '@/components/Analytics'
 
 export const metadata: Metadata = {
-  title: 'Plenti — Give what\'s actually needed',
-  description: 'See what your local food banks need before you shop.',
+  title: 'Plenti — Donate What Your Food Bank Actually Needs',
+  description: 'Plenti connects donors with local food banks by showing exactly what\'s needed right now — so every item you bring makes a real difference.',
   manifest: '/manifest.json',
   openGraph: {
-    title: 'Plenti — Give what\'s actually needed',
-    description: 'See what your local food banks need before you shop.',
+    title: 'Plenti — Donate What Your Food Bank Actually Needs',
+    description: 'Plenti connects donors with local food banks by showing exactly what\'s needed right now — so every item you bring makes a real difference.',
     type: 'website',
     siteName: 'Plenti',
   },
   twitter: {
     card: 'summary',
-    title: 'Plenti — Give what\'s actually needed',
-    description: 'See what your local food banks need before you shop.',
+    title: 'Plenti — Donate What Your Food Bank Actually Needs',
+    description: 'Plenti connects donors with local food banks by showing exactly what\'s needed right now — so every item you bring makes a real difference.',
   },
   icons: {
     icon: [
